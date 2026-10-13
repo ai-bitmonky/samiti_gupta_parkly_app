@@ -165,6 +165,8 @@ function CheckoutForm({ f, d }: { f: Facility; d: Draft }) {
   const [msg, setMsg] = useState(co.promoMsg);
   const [method, setMethod] = useState<PaymentMethodId>(co.method || state.prefs.payment || "upi");
   const [busy, setBusy] = useState(false);
+  const failRef = useRef(state.demo.nextPaymentFails);
+  failRef.current = state.demo.nextPaymentFails;
   const v = state.vehicles.find((x) => x.id === d.vehicleId) || defaultVehicle(state), end = draftEnd(d), pol = D.policies[f.policy];
   const promoCode = msg && msg.ok ? promo : undefined;
   const qq = quote({ facility: f, start: d.start, end, mode: d.mode, vehicleType: v.type, evCharging: d.reqs.includes("EV charging"), promo: promoCode });
@@ -183,7 +185,8 @@ function CheckoutForm({ f, d }: { f: Facility; d: Draft }) {
     setBusy(true);
     window.setTimeout(() => {
       setBusy(false);
-      if (state.demo.nextPaymentFails) {
+      if (failRef.current) {
+        failRef.current = false;
         actions.setDemo({ nextPaymentFails: false });
         openModal(({ open, close }) => <PayFailedModal open={open} close={close} onRetry={pay} onChange={() => methodsRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })} />);
         return;

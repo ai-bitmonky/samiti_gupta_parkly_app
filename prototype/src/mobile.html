@@ -1,0 +1,1899 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0F0C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PARKLY">
+<meta name="format-detection" content="telephone=no">
+<meta name="description" content="PARKLY: reserve a parking space in Delhi NCR before you arrive.">
+<title>PARKLY</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%230F2A1F'/%3E%3Cpath d='M13 30V10h8.5a6.5 6.5 0 0 1 0 13H13' fill='none' stroke='%23F5F4EF' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='28.5' cy='29' r='3.6' fill='%23C6F432'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Onest:wght@400;500;600;700&family=Schibsted+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+<!--#include core.css-->
+
+/* ═════════════ PARKLY MOBILE · native-app layer ═════════════ */
+:root { --nav-ease: cubic-bezier(.2, 0, 0, 1); --in-ease: cubic-bezier(0, 0, .2, 1); --tabbar-h: 64px; }
+@media (min-width: 520px) { :root { --tabbar-h: 78px; } }
+
+/* M1 · native chrome: no selection, no scrollbars, no link look, no hover affordances */
+html, body.m { height: 100%; overscroll-behavior: none; }
+body.m { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+body.m input, body.m textarea, body.m .selectable { -webkit-user-select: text; user-select: text; }
+body.m * { scrollbar-width: none; }
+body.m *::-webkit-scrollbar { display: none; width: 0; height: 0; }
+body.m a, body.m a:hover { text-decoration: none; color: inherit; }
+body.m img, body.m svg { -webkit-user-drag: none; }
+body.m .btn-primary:hover:not([disabled]) { box-shadow: none; background: var(--lime); }
+body.m .btn-secondary:hover:not([disabled]) { background: var(--surface-2); }
+body.m .btn-outline:hover:not([disabled]) { background: transparent; border-color: var(--line-strong); }
+body.m .btn-ghost:hover:not([disabled]) { background: transparent; color: var(--ink-2); }
+body.m .btn-danger:hover:not([disabled]) { background: var(--danger-dim); color: var(--danger); }
+body.m .icon-btn:hover, body.m button.list-row:hover, body.m a.list-row:hover { background: transparent; }
+body.m .card-hover:hover { transform: none; box-shadow: var(--shadow-card); border-color: var(--line); }
+body.m button.chip:hover { color: var(--ink-2); border-color: var(--line); }
+body.m button.chip.is-on:hover { color: var(--on-lime); border-color: var(--lime); }
+body.m .heat-cell:hover { transform: none; }
+.tap, body.m .btn, body.m .chip, body.m .list-row, body.m .opt, body.m .icon-btn, body.m .datestrip > button, body.m .heat-cell { transition: transform 100ms var(--nav-ease), background var(--t-fast), border-color var(--t-fast), color var(--t-fast), opacity var(--t-fast); }
+.tap:active, body.m .chip:active, body.m .list-row:active, body.m .opt:active, body.m .icon-btn:active, body.m .heat-cell:active, body.m .datestrip > button:active { transform: scale(.97); }
+body.m .list-row:active { background: var(--surface-2); }
+body.m .btn-primary:active:not([disabled]) { background: #B5E21F; }
+
+/* M2 · device, status bar, stage */
+body.m .device { background: var(--asphalt); }
+.sb-time { font: 600 15px/1 var(--font-body); letter-spacing: -0.01em; position: relative; z-index: 1; }
+body.m .sb-icons { position: relative; z-index: 1; }
+body.m .sb-icons svg { display: block; }
+.screens { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #050806; }
+body.m .screen {
+  position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--asphalt);
+  overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; contain: layout paint;
+}
+body.m .screen > .page, body.m .screen > .page-flush { flex: 1 0 auto; }
+body.m .screen.has-tabbar > :last-child { padding-bottom: calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom, 0px)); }
+body.m .screen.is-fixed { overflow: hidden; }
+.edge-swipe { position: absolute; left: 0; top: 0; bottom: 0; width: 18px; z-index: 75; touch-action: none; }
+body.m .stage-note { line-height: 1.6; }
+.stage-note h3 { font: 800 22px/1.15 var(--font-display); letter-spacing: -0.02em; color: var(--ink); margin: 14px 0 10px; }
+.stage-note li { list-style: none; display: flex; gap: 10px; margin: 8px 0; }
+.stage-note li .ico { color: var(--lime); margin-top: 3px; }
+
+/* M3 · push / pop transitions (320ms) */
+@keyframes push-in { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes push-out { to { transform: translateX(-28%); filter: brightness(.6); } }
+@keyframes pop-in { from { transform: translateX(-28%); filter: brightness(.6); } to { transform: none; filter: none; } }
+@keyframes pop-out { to { transform: translateX(100%); } }
+@keyframes tab-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.screen.nav-push-in, .screen.nav-pop-out { z-index: 3; box-shadow: -24px 0 48px -12px rgba(0, 0, 0, .65); }
+.screen.nav-push-in { animation: push-in 320ms var(--nav-ease) both; }
+.screen.nav-push-out { animation: push-out 320ms var(--nav-ease) both; pointer-events: none; }
+.screen.nav-pop-in { animation: pop-in 320ms var(--nav-ease) both; }
+.screen.nav-pop-out { animation: pop-out 320ms var(--nav-ease) both; pointer-events: none; }
+.screen.nav-tab-in { animation: tab-in 220ms var(--in-ease) both; }
+.screen.is-under { transform: translateX(-28%); filter: brightness(.6); z-index: 1; }
+.screen.is-swiping { z-index: 3; box-shadow: -24px 0 48px -12px rgba(0, 0, 0, .65); }
+.screen.is-settling { transition: transform 240ms var(--nav-ease), filter 240ms var(--nav-ease); }
+
+/* M4 · top bar with large title that collapses on scroll */
+body.m .topbar { flex: none; height: calc(52px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 6px 0; gap: 2px; background: rgba(10, 15, 12, .72); backdrop-filter: saturate(170%) blur(20px); -webkit-backdrop-filter: saturate(170%) blur(20px); }
+body.m .topbar.is-large:not(.is-collapsed) { background: var(--asphalt); backdrop-filter: none; -webkit-backdrop-filter: none; }
+body.m .topbar-title { text-align: center; padding: 0 4px; position: absolute; left: 108px; right: 108px; bottom: 0; height: 52px; display: grid; place-content: center; pointer-events: none; transition: opacity 180ms var(--nav-ease), transform 180ms var(--nav-ease); }
+body.m .topbar.is-large .topbar-title { opacity: 0; transform: translateY(8px); }
+body.m .topbar.is-collapsed .topbar-title { opacity: 1; transform: none; }
+body.m .topbar.is-collapsed { border-bottom-color: var(--line); }
+.tb-spacer { flex: 1; }
+body.m .topbar-title > span, body.m .topbar-title small { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.m .topbar-title { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+body.m .topbar-title small { max-width: 100%; }
+.tb-actions { display: flex; align-items: center; margin-left: auto; }
+.nav-back { display: inline-flex; align-items: center; gap: 0; height: 44px; padding: 0 8px 0 2px; color: var(--ink); font: 500 16px/1 var(--font-body); max-width: 120px; border-radius: 12px; }
+.nav-back span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-2); }
+.nav-back:active { opacity: .55; }
+.lt { padding: 2px 20px 14px; }
+.lt h1 { font: 800 34px/1.04 var(--font-display); letter-spacing: -0.035em; transform-origin: left center; }
+.lt .eyebrow { margin-bottom: 6px; }
+.lt p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+.glass-btn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: rgba(10, 15, 12, .55); border: 1px solid var(--line); color: var(--ink); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: transform 100ms var(--nav-ease); }
+.glass-btn:active { transform: scale(.92); }
+.topbar.is-overlay { position: absolute; left: 0; right: 0; top: 0; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; padding-left: 10px; padding-right: 10px; gap: 8px; }
+.topbar.is-overlay.is-collapsed { background: rgba(10, 15, 12, .8); backdrop-filter: saturate(170%) blur(20px); -webkit-backdrop-filter: saturate(170%) blur(20px); }
+.topbar.is-overlay.is-collapsed .glass-btn { background: transparent; border-color: transparent; }
+
+/* M5 · tab bar: blurred, safe-area padded, slides away on pushed screens */
+body.m .tabbar { position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px)); background: rgba(14, 20, 17, .74); backdrop-filter: saturate(180%) blur(22px); -webkit-backdrop-filter: saturate(180%) blur(22px); transition: transform 320ms var(--nav-ease); }
+body.m .device.no-tabbar .tabbar { display: flex; transform: translateY(110%); }
+body.m .tab { -webkit-tap-highlight-color: transparent; }
+body.m .tab .tab-ico { transition: background var(--t) var(--ease), color var(--t-fast), transform 100ms var(--nav-ease); }
+body.m .tab:active .tab-ico { transform: scale(.88); }
+body.m .tab:hover { color: var(--muted); }
+body.m .tab.is-on:hover { color: var(--ink); }
+body.m .floating { bottom: calc(var(--tabbar-h) + 12px); transition: transform 320ms var(--nav-ease), opacity 200ms; }
+body.m .device.no-tabbar .floating { bottom: 16px; }
+.floating[hidden] { display: none; }
+body.m .device .toast-host { bottom: calc(var(--tabbar-h) + 20px); }
+body.m .device.no-tabbar .toast-host { bottom: 96px; }
+
+/* M6 · bottom sheets: grabber you can drag down to dismiss */
+body.m .sheet { max-height: calc(100% - 40px); }
+body.m .sheet-grip { width: 38px; height: 5px; margin: 8px auto 2px; position: relative; background: rgba(245, 244, 239, .28); }
+.sheet-drag { touch-action: none; cursor: grab; }
+.sheet.is-dragging { animation: none !important; transition: none !important; }
+.sheet.is-settling { animation: none !important; transition: transform 260ms var(--nav-ease) !important; }
+.overlay.is-closing .sheet.is-flung { animation: none !important; transform: translateY(105%) !important; transition: transform 220ms var(--nav-ease) !important; }
+body.m .sheet-title { font-size: 18px; }
+body.m .sheet-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+.sheet-full { height: calc(100% - 40px); }
+.act-list { display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; background: var(--surface-2); }
+.act-list .list-row { border-top-color: var(--line); min-height: 54px; font-size: 16px; }
+.act-list .list-row.t-danger { color: var(--danger); }
+
+/* M7 · native form rows, toggles, segmented control */
+body.m .input, body.m .select, body.m .textarea { border-color: transparent; background: var(--surface-2); font-size: 16px; }
+body.m .input:hover, body.m .textarea:hover { border-color: transparent; }
+body.m .input:focus, body.m .textarea:focus { border-color: rgba(198, 244, 50, .55); box-shadow: 0 0 0 3px rgba(198, 244, 50, .12); }
+.group { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+.group-label { font: 600 12px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 0 6px 8px; }
+.group-foot { font-size: 12.5px; color: var(--muted); padding: 8px 6px 0; }
+.grow-row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 16px; border-top: 1px solid var(--line); width: 100%; text-align: left; color: var(--ink); }
+.grow-row:first-child { border-top: 0; }
+.grow-row > .lbl { flex: 1; min-width: 0; font-size: 15.5px; }
+.grow-row > .lbl small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.grow-row .val { color: var(--muted); font-size: 15px; }
+.grow-row input.row-input { flex: 1.3; min-width: 0; text-align: right; background: transparent; border: 0; height: 36px; font-size: 16px; color: var(--ink); outline: none; }
+.grow-row input.row-input::placeholder { color: var(--muted-2); }
+.grow-row .ri { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--surface-3); color: var(--ink-2); flex: none; }
+.grow-row .ri.lime { background: var(--lime); color: var(--on-lime); }
+.grow-row:active { background: var(--surface-2); }
+.grow-row.no-press:active { background: transparent; }
+body.m .switch { min-height: 32px; }
+body.m .switch-track { width: 51px; height: 31px; border-radius: 16px; border: 0; background: rgba(245, 244, 239, .16); }
+body.m .switch-track::after { top: 2px; left: 2px; width: 27px; height: 27px; background: #F5F4EF; box-shadow: 0 3px 8px rgba(0, 0, 0, .35), 0 1px 1px rgba(0, 0, 0, .2); }
+body.m .switch input:checked + .switch-track::after { transform: translateX(20px); background: #fff; }
+body.m .seg { position: relative; padding: 3px; gap: 0; border-radius: 12px; background: rgba(245, 244, 239, .08); border: 0; }
+body.m .seg > button { position: relative; z-index: 1; height: 34px; border-radius: 9px; background: transparent; color: var(--ink-2); }
+body.m .seg > button.is-on { background: transparent; color: var(--asphalt); }
+.seg-thumb { position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 0; border-radius: 9px; background: var(--ink); box-shadow: 0 3px 8px rgba(0, 0, 0, .3); transition: transform 260ms var(--nav-ease), width 260ms var(--nav-ease); }
+.check-mark { color: var(--lime); }
+body.m .tabs { border-bottom: 0; gap: 8px; padding: 0 16px; }
+body.m .tabs > button { height: 36px; padding: 0 14px; border-radius: 18px; background: var(--surface-2); color: var(--ink-2); font-size: 13.5px; }
+body.m .tabs > button.is-on { background: var(--ink); color: var(--asphalt); }
+body.m .tabs > button.is-on::after { display: none; }
+body.m .tabs > button.is-on .count { background: rgba(10, 15, 12, .12); color: var(--asphalt); }
+
+/* M8 · wheel pickers (scroll-snap columns) */
+.wheel { position: relative; display: flex; height: 200px; border-radius: 18px; background: var(--surface-2); overflow: hidden; }
+.wheel::before { content: ""; position: absolute; left: 8px; right: 8px; top: 80px; height: 40px; border-radius: 11px; background: rgba(245, 244, 239, .08); pointer-events: none; }
+.wheel::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(var(--surface-2), rgba(26, 36, 32, 0) 38%, rgba(26, 36, 32, 0) 62%, var(--surface-2)); }
+.wcol { flex: 1; height: 200px; overflow-y: scroll; scroll-snap-type: y mandatory; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; perspective: 600px; touch-action: pan-y; }
+.wcol.w-wide { flex: 2.1; }
+.wcol .w-pad { height: 80px; }
+.wcol .w-it { height: 40px; scroll-snap-align: center; display: grid; place-items: center; font: 600 19px/1 var(--font-mono); color: var(--ink); white-space: nowrap; transform-origin: center; will-change: transform; cursor: pointer; }
+.wcol.w-wide .w-it { font: 600 16.5px/1 var(--font-body); }
+.wcol .w-it.is-past { color: var(--muted-2); }
+
+/* M9 · pull to refresh + skeleton */
+.ptr { position: absolute; left: 50%; top: calc(56px + env(safe-area-inset-top, 0px)); width: 36px; height: 36px; margin-left: -18px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line-strong); display: grid; place-items: center; color: var(--lime); z-index: 5; opacity: 0; transform: translateY(-40px) scale(.6); pointer-events: none; }
+.ptr svg { transition: none; }
+.screen.is-pulling > :not(.topbar):not(.ptr), .screen.is-refreshing > :not(.topbar):not(.ptr) { transform: translateY(var(--pull, 0px)); }
+.screen.is-releasing > :not(.topbar):not(.ptr), .screen.is-releasing > .ptr { transition: transform 300ms var(--nav-ease), opacity 200ms; }
+.screen.is-refreshing .ptr svg { animation: spin .8s linear infinite; }
+.sk-card { border-radius: var(--r-card); border: 1px solid var(--line); background: var(--surface); overflow: hidden; }
+.sk-card .skeleton { border-radius: 8px; }
+.sk-card .skeleton::after { animation-duration: 1.4s; }
+.fade-swap { animation: fade 200ms var(--ease) both; }
+
+/* M10 · result cards + mini cards */
+.rlist { display: flex; flex-direction: column; gap: 12px; }
+.rcard { border-radius: var(--r-card); border: 1px solid rgba(245, 244, 239, .08); background: var(--surface); overflow: hidden; position: relative; }
+.rcard.is-sel::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--lime); z-index: 2; }
+.rcard-media { position: relative; height: 112px; background: var(--surface-2); }
+.rcard-media .illus { position: absolute; inset: 0; }
+.rcard-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 15, 12, 0) 40%, rgba(18, 26, 21, .9)); }
+.rcard-badges { position: absolute; left: 12px; top: 12px; z-index: 1; display: flex; gap: 6px; }
+.rcard-badges .badge { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); background-color: rgba(10, 15, 12, .6); }
+.heart { position: absolute; right: 10px; top: 10px; z-index: 2; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: rgba(10, 15, 12, .55); color: var(--ink); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: transform 100ms; }
+.heart:active { transform: scale(.88); }
+.heart.is-on { color: var(--danger); }
+.heart.is-on svg { fill: currentColor; }
+.heart.is-pop svg { animation: check-pop 360ms var(--ease-out); }
+.rcard-body { padding: 4px 16px 14px; display: flex; flex-direction: column; gap: 12px; position: relative; z-index: 1; margin-top: -26px; }
+.rcard-name { font: 700 17px/1.2 var(--font-display); letter-spacing: -0.015em; }
+.rcard-meta { font-size: 12.5px; color: var(--muted); margin-top: 3px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.rcard-meta .mono { color: var(--ink-2); }
+.mp { font: 800 30px/1 var(--font-display); letter-spacing: -0.03em; white-space: nowrap; display: inline-flex; align-items: flex-start; }
+.mp .rs { font-size: .6em; margin: .1em 1px 0 0; font-weight: 700; }
+.mp-sm { font-size: 22px; }
+.mp-n { font-variant-numeric: tabular-nums; }
+.price-sub { font: 500 11.5px/1.3 var(--font-mono); color: var(--muted); margin-top: 4px; }
+.reason { display: flex; gap: 6px; align-items: flex-start; font-size: 12.5px; color: var(--lime); line-height: 1.35; }
+.reason .ico { margin-top: 1px; }
+.rcard-foot { display: flex; align-items: center; gap: 12px; }
+.rcard-foot .occ { flex: 1; }
+.cmp-toggle { display: inline-flex; align-items: center; gap: 8px; height: 32px; font-size: 13px; color: var(--ink-2); }
+.cmp-toggle .check-box { width: 20px; height: 20px; border-radius: 6px; }
+.cmp-toggle.is-on .check-box { background: var(--lime); border-color: var(--lime); }
+.cmp-toggle.is-on .check-box::after { transform: rotate(-45deg) translate(1px, -1px) scale(1); }
+.mini-row { display: flex; gap: 12px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scroll-snap-type: x mandatory; scroll-padding: 0 16px; }
+.mini { flex: none; width: 168px; scroll-snap-align: start; border-radius: 16px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); }
+.mini .illus-frame { border-radius: 0; aspect-ratio: 16 / 9; }
+.mini-b { padding: 10px 12px 12px; }
+.amen-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.amen-row .amen-chip { width: 26px; height: 26px; color: var(--ink-2); }
+
+/* M11 · explore header pieces */
+.searchbar { display: flex; align-items: center; gap: 10px; width: 100%; height: 50px; padding: 0 8px 0 14px; border-radius: 16px; background: var(--surface-2); color: var(--ink); text-align: left; border: 1px solid var(--line); }
+.searchbar .grow { overflow: hidden; }
+.searchbar .grow b { display: block; font: 600 15.5px/1.2 var(--font-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.searchbar .grow small { display: block; font-size: 12px; color: var(--muted); }
+.searchbar .near { height: 34px; padding: 0 10px; border-radius: 10px; background: var(--surface-3); display: inline-flex; align-items: center; gap: 5px; font: 600 12.5px/1 var(--font-body); color: var(--ink); }
+.when { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; width: 100%; text-align: left; }
+.when-cell { padding: 11px 14px; min-width: 0; }
+.when-cell .eyebrow { font-size: 10px; margin-bottom: 5px; }
+.when-cell b { display: block; font: 600 14.5px/1.2 var(--font-mono); white-space: nowrap; }
+.when-cell small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.when-dur { height: 28px; padding: 0 10px; border-radius: 14px; background: var(--lime); color: var(--on-lime); font: 700 12px/28px var(--font-mono); white-space: nowrap; }
+.map-strip { height: 150px; border-radius: 20px; border: 1px solid var(--line); overflow: hidden; }
+.sec { margin-top: 32px; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.sec-head h2 { font: 700 19px/1.2 var(--font-display); letter-spacing: -0.015em; }
+.sec-head .link { font-size: 14px; color: var(--lime); }
+.lane-sep { border: 0; border-top: 2px dashed rgba(198, 244, 50, .4); margin: 28px 0 0; transform-origin: left; animation: lane-paint 600ms var(--in-ease) both; }
+@keyframes lane-paint { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.m-stagger > :nth-child(-n+4) { animation: rise 600ms var(--in-ease) both; }
+.m-stagger > :nth-child(2) { animation-delay: 75ms; } .m-stagger > :nth-child(3) { animation-delay: 150ms; } .m-stagger > :nth-child(4) { animation-delay: 225ms; }
+@keyframes m-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.m-stagger > :nth-child(-n+4) { animation-name: m-rise; }
+.filter-row { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px 12px; padding: 0 16px; }
+.filter-row .chip { flex: none; }
+.chip .n { min-width: 18px; height: 18px; border-radius: 9px; background: var(--on-lime); color: var(--lime); font: 700 10.5px/18px var(--font-mono); text-align: center; padding: 0 4px; }
+
+/* M12 · welcome */
+.welcome { min-height: 100%; display: flex; flex-direction: column; padding: 14px 20px calc(20px + env(safe-area-inset-bottom, 0px)); background: radial-gradient(120% 60% at 20% 0%, var(--forest-2), var(--forest) 45%, var(--asphalt) 100%); position: relative; overflow: hidden; }
+.wl-top { display: flex; align-items: center; justify-content: space-between; height: 44px; }
+.wl-h { font: 800 46px/.95 var(--font-display); letter-spacing: -0.04em; margin-top: 22px; }
+.wl-h span { display: block; animation: m-rise 600ms var(--in-ease) both; }
+.wl-h span + span { animation-delay: 80ms; }
+.wl-bays { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; margin: 26px -4px 0; border-top: 2px solid rgba(245, 244, 239, .2); border-bottom: 2px solid rgba(245, 244, 239, .2); }
+.wb { height: 64px; border-left: 2px solid rgba(245, 244, 239, .2); display: grid; place-items: center; position: relative; animation: fade 500ms var(--in-ease) both; animation-delay: var(--d); }
+.wb:nth-child(6n+1) { border-left: 0; }
+.wb:nth-child(-n+6) { border-bottom: 2px dashed rgba(245, 244, 239, .14); }
+.wb i { width: 26px; height: 46px; border-radius: 8px; background: var(--c); opacity: .75; box-shadow: inset 0 10px 0 rgba(6, 9, 10, .4), inset 0 -8px 0 rgba(6, 9, 10, .3); }
+.wb.is-lit { background: rgba(198, 244, 50, .14); box-shadow: inset 0 0 0 2px var(--lime); border-radius: 4px; }
+.wb.is-lit span { font: 700 11px/1 var(--font-mono); color: var(--lime); letter-spacing: .04em; }
+.wb.is-lit::after { content: ""; position: absolute; inset: -2px; border-radius: 6px; box-shadow: 0 0 22px rgba(198, 244, 50, .45); animation: blink 2.4s ease-in-out infinite; pointer-events: none; }
+.wl-slides { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; margin: 26px -20px 0; }
+.wl-slide { flex: none; width: 100%; scroll-snap-align: center; padding: 0 20px; display: flex; gap: 14px; align-items: flex-start; }
+.wl-ico { width: 44px; height: 44px; border-radius: 14px; background: rgba(198, 244, 50, .14); color: var(--lime); display: grid; place-items: center; flex: none; }
+.wl-slide b { font: 700 18px/1.25 var(--font-display); display: block; }
+.wl-slide p { color: var(--ink-2); font-size: 14.5px; margin-top: 4px; }
+.wl-dots { display: flex; gap: 6px; margin: 16px 0 0; }
+.wl-dots i { width: 6px; height: 6px; border-radius: 3px; background: rgba(245, 244, 239, .25); transition: width 240ms var(--nav-ease), background 240ms; }
+.wl-dots i.is-on { width: 22px; background: var(--lime); }
+.wl-cta { margin-top: auto; padding-top: 24px; display: flex; flex-direction: column; gap: 6px; }
+
+/* M13 · full map screen */
+.mapfull { position: absolute; inset: 0; }
+.mapfull .map-ctrls { top: auto; bottom: calc(var(--tabbar-h) + 24px); }
+.mapfull .map-search-area { top: 150px; }
+.mapfull .map-scale { bottom: calc(var(--tabbar-h) + 14px); }
+.map-top { position: absolute; left: 0; right: 0; top: 0; z-index: 50; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0; pointer-events: none; }
+.map-top > * { pointer-events: auto; }
+.map-glass { display: flex; gap: 8px; }
+.map-q { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 14px; border-radius: 18px; background: rgba(18, 26, 21, .86); border: 1px solid var(--line-strong); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); text-align: left; box-shadow: var(--shadow-lift); }
+.map-q b { display: block; font-size: 15px; } .map-q small { display: block; font: 500 11.5px/1.2 var(--font-mono); color: var(--muted); }
+.map-when { width: 54px; height: 54px; border-radius: 18px; display: grid; place-items: center; background: rgba(18, 26, 21, .86); border: 1px solid var(--line-strong); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.map-top .chip { background: rgba(18, 26, 21, .86); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.map-top .chip.is-on { background: var(--lime); }
+.map-preview { position: absolute; left: 12px; right: 12px; bottom: calc(var(--tabbar-h) + 12px); z-index: 60; }
+.mp-card { padding: 14px; border-radius: 22px; background: rgba(18, 26, 21, .96); border: 1px solid var(--line-strong); box-shadow: var(--shadow-lift); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.map .pin { animation-duration: 240ms; animation-delay: calc(var(--i, 0) * 40ms); }
+.map .pin.is-sel::before { content: ""; position: absolute; left: 50%; top: 13px; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; background: rgba(198, 244, 50, .3); animation: pulse-ring 2s var(--ease) infinite; z-index: -1; }
+.map-route { stroke-dashoffset: 0; animation: walk-dash 1.2s linear infinite; }
+@keyframes walk-dash { to { stroke-dashoffset: -16; } }
+
+.screen.has-preview .map-ctrls, .screen.has-preview .map-scale { opacity: 0; pointer-events: none; }
+
+/* M14 · facility detail */
+.dt-hero { height: 270px; margin-top: calc(-52px - env(safe-area-inset-top, 0px)); position: relative; flex: none; overflow: hidden; }
+.dt-hero .illus { position: absolute; inset: 0; animation: fade 400ms var(--in-ease) both; }
+.dt-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 15, 12, .55), rgba(10, 15, 12, 0) 35%, rgba(10, 15, 12, 0) 60%, var(--asphalt)); }
+.dt-thumbs { display: flex; gap: 8px; padding: 0 16px; margin-top: -36px; position: relative; z-index: 2; }
+.dt-thumb { width: 72px; height: 52px; border-radius: 12px; overflow: hidden; border: 2px solid rgba(10, 15, 12, .9); box-shadow: 0 6px 16px rgba(0, 0, 0, .5); }
+.dt-thumb .illus { width: 100%; height: 100%; }
+.dt-thumb.is-on { border-color: var(--lime); }
+.topbar .glass-btn.heart-on, .topbar [data-act=save].is-on { color: var(--danger); }
+.topbar [data-act=save].is-on svg { fill: currentColor; }
+.dt-acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.dt-act { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 4px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font: 600 12px/1 var(--font-body); }
+.dt-act.is-on { color: var(--lime); border-color: rgba(198, 244, 50, .4); }
+.dt-act.is-on[data-act=save] { color: var(--danger); border-color: rgba(255, 90, 95, .4); }
+.dt-act.is-on[data-act=save] svg { fill: currentColor; }
+.heat { grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.heat-cell { height: 46px; font-size: 11px; }
+.heat-cell .n { font-size: 10px; }
+.heat-cell.is-past { opacity: .35; }
+.ps { display: grid; grid-template-columns: repeat(4, 1fr); border-radius: 16px; border: 1px solid var(--line); overflow: hidden; background: var(--surface); }
+.ps-cell { padding: 12px 10px; border-left: 1px dashed var(--line-strong); }
+.ps-cell:first-child { border-left: 0; }
+.ps-cell b { display: block; font-size: 15px; margin-top: 6px; }
+.ev-card { background: linear-gradient(160deg, rgba(124, 184, 255, .08), var(--surface)); }
+.steps { counter-reset: s; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.steps li { counter-increment: s; display: flex; gap: 12px; align-items: flex-start; font-size: 14px; color: var(--ink-2); line-height: 1.45; }
+.steps li::before { content: counter(s); flex: none; width: 24px; height: 24px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); color: var(--lime); display: grid; place-items: center; font: 700 12px/1 var(--font-mono); }
+.pol { list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.pol li { display: flex; gap: 8px; align-items: flex-start; }
+.pol .ico { color: var(--ok); margin-top: 3px; }
+.rv { flex: none; width: 260px; scroll-snap-align: start; }
+
+/* M15 · reserve / checkout */
+.step { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.step h2 { font: 700 19px/1.2 var(--font-display); letter-spacing: -0.015em; }
+.step-n { width: 26px; height: 26px; border-radius: 50%; background: var(--lime); color: var(--on-lime); display: grid; place-items: center; font: 700 13px/1 var(--font-mono); flex: none; }
+body.m .actionbar { position: sticky; bottom: 0; margin-top: auto; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: rgba(14, 20, 17, .82); backdrop-filter: saturate(170%) blur(20px); -webkit-backdrop-filter: saturate(170%) blur(20px); }
+@media (min-width: 520px) { body.m .actionbar { padding-bottom: 26px; } }
+.screen > .page + .actionbar { margin-top: 0; }
+.opt { min-height: 64px; }
+.opt.is-disabled { opacity: .6; }
+.review-row { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); align-items: flex-start; }
+.review-row:first-child { border-top: 0; padding-top: 0; }
+.review-row .ico { color: var(--muted); margin-top: 2px; flex: none; }
+.review-row .k { font-size: 12px; color: var(--muted); }
+.review-row .v { font-size: 14.5px; font-weight: 500; }
+.promo { display: flex; gap: 8px; }
+.promo .input { flex: 1; text-transform: uppercase; font-family: var(--font-mono); letter-spacing: .06em; }
+.pay-ico { width: 40px; height: 40px; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; flex: none; color: var(--ink-2); }
+.processing .spinner { width: 54px; height: 54px; }
+.processing p { color: var(--ink-2); }
+
+/* M16 · confirmation + pass */
+.check-badge.is-pend { background: var(--warn); box-shadow: 0 0 0 1px rgba(255, 176, 32, .35), 0 10px 40px -12px rgba(255, 176, 32, .45); }
+.pass-slot { display: flex; justify-content: center; }
+.m-pass { max-width: 100%; }
+.m-pass .pass-top { padding: 18px 18px 16px; }
+.m-pass .pass-bay { font-size: 56px; }
+.m-pass.is-printing { animation: print 900ms var(--ease-out) backwards; }
+.pass-rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 18px; }
+.pass-rail span { height: 26px; border-radius: 8px; display: grid; place-items: center; font: 700 10.5px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: rgba(245, 244, 239, .06); }
+.pass-rail span.is-done { color: var(--ink-2); background: rgba(198, 244, 50, .12); }
+.pass-rail span.is-on { background: var(--lime); color: var(--on-lime); }
+.pass-tear::after { display: none; }
+.perf { position: absolute; left: calc(var(--notch) + 6px); right: calc(var(--notch) + 6px); top: calc(50% - 1px); width: calc(100% - 2 * var(--notch) - 12px); height: 2px; overflow: visible; }
+.perf line { stroke: rgba(245, 244, 239, .3); stroke-width: 2; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.is-printing .perf { clip-path: inset(0 100% 0 0); animation: perf-draw 500ms 700ms var(--in-ease) forwards; }
+@keyframes perf-draw { to { clip-path: inset(0 0 0 0); } }
+.qr-wrap { position: relative; flex: none; border-radius: 10px; overflow: hidden; }
+.qr-wrap .qr { width: 116px; height: 116px; display: block; }
+.is-printing .qr-wrap .qr { animation: fade 300ms 850ms var(--ease) both; }
+.scan { position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--lime); box-shadow: 0 0 12px 2px rgba(198, 244, 50, .8); opacity: 0; }
+.is-printing .scan { animation: scan 900ms 1050ms var(--ease) both; }
+@keyframes scan { 0% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; transform: translateY(113px); } 100% { opacity: 0; transform: translateY(113px); } }
+.barrier-arm { transform-origin: 6px 19.5px; transition: transform 600ms var(--ease-out); }
+.barrier.is-up .barrier-arm { transform: rotate(-70deg); }
+.pass-top.grain::before { border-radius: 22px 22px 0 0; }
+
+/* M17 · bookings */
+.bcard { display: block; border-radius: var(--r-card); background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.bcard-top { display: flex; gap: 12px; padding: 14px; align-items: center; }
+.bcard-top .thumb { width: 60px; height: 60px; }
+.bcard-bot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px dashed var(--line-strong); }
+.bcard.is-live { border-color: rgba(198, 244, 50, .35); }
+.bcard.is-over { border-color: rgba(255, 90, 95, .5); }
+.hero-st { border-radius: 24px; padding: 20px; background: linear-gradient(160deg, var(--forest-2), var(--surface)); border: 1px solid rgba(198, 244, 50, .18); position: relative; overflow: hidden; }
+.hero-st.is-warn { background: linear-gradient(160deg, rgba(255, 176, 32, .16), var(--surface)); border-color: rgba(255, 176, 32, .35); }
+.hero-st.is-danger { background: linear-gradient(160deg, rgba(255, 90, 95, .18), var(--surface)); border-color: rgba(255, 90, 95, .45); }
+.hero-st.is-muted { background: var(--surface); border-color: var(--line); }
+.cd-big { font: 700 40px/1 var(--font-mono); letter-spacing: -0.03em; }
+.ring-wrap { display: flex; gap: 18px; align-items: center; }
+.ring .ring-time { font-size: 24px; }
+.act-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+.diff { font: 700 15px/1.2 var(--font-mono); }
+.cd-chip { display: inline-flex; gap: 6px; align-items: center; height: 30px; padding: 0 10px; border-radius: 10px; background: var(--warn-dim); color: var(--warn); font: 700 13px/1 var(--font-mono); }
+.ext-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ext-chips .chip { justify-content: center; }
+
+/* M18 · compare, alerts, profile */
+.cmp-scroll { overflow-x: auto; padding: 0 16px; scroll-snap-type: x proximity; }
+.cmp { border-collapse: separate; border-spacing: 0; min-width: calc(108px + var(--n) * 150px); table-layout: fixed; }
+.cmp th, .cmp td { padding: 10px 10px; font-size: 13px; text-align: left; vertical-align: top; border-top: 1px solid var(--line); width: 150px; }
+.cmp thead th { border-top: 0; padding-top: 0; scroll-snap-align: start; }
+.cmp .cmp-k { width: 108px; position: sticky; left: -16px; z-index: 1; background: var(--asphalt); color: var(--muted); font: 600 11px/1.3 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; box-shadow: 8px 0 12px -10px rgba(0, 0, 0, .8); }
+.cmp thead .illus-frame { aspect-ratio: 16 / 10; margin-bottom: 8px; border-radius: 12px; }
+.cmp-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.25; }
+.cmp td { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-2); }
+.cmp td.is-best { color: var(--lime); font-weight: 700; }
+.cmp td.is-best .ico { margin-right: 4px; vertical-align: -2px; }
+.nrow { position: relative; overflow: hidden; border-top: 1px solid var(--line); }
+.nrow:first-child { border-top: 0; }
+.nrow .grow-row { position: relative; z-index: 1; background: var(--surface); border-top: 0; align-items: flex-start; touch-action: pan-y; }
+.nrow .lbl small + small { margin-top: 4px; font-size: 11px; }
+.nrow-del { position: absolute; right: 0; top: 0; bottom: 0; width: 76px; background: var(--danger); color: #fff; display: grid; place-items: center; }
+.nrow.is-unread .grow-row { background: linear-gradient(90deg, rgba(198, 244, 50, .05), transparent 60%), var(--surface); }
+.udot { width: 9px; height: 9px; border-radius: 50%; background: var(--lime); flex: none; margin-top: 6px; }
+.nk-ok { color: var(--ok) !important; background: var(--ok-dim) !important; } .nk-danger { color: var(--danger) !important; background: var(--danger-dim) !important; }
+.nk-warn { color: var(--warn) !important; background: var(--warn-dim) !important; } .nk-info { color: var(--info) !important; background: var(--info-dim) !important; }
+.nk-lime { color: var(--lime) !important; background: var(--lime-dim) !important; } .nk-neutral { color: var(--ink-2) !important; background: var(--surface-3) !important; }
+.faq { border-top: 1px solid var(--line); }
+.faq:first-child { border-top: 0; }
+.faq summary { list-style: none; cursor: pointer; border-top: 0; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq[open] summary .chev { transform: rotate(180deg); }
+.faq summary .chev { transition: transform 240ms var(--nav-ease); }
+.faq p { padding: 0 16px 14px; }
+.ver { display: block; width: 100%; text-align: center; padding: 20px 0 8px; font: 500 12px/1.4 var(--font-mono); color: var(--muted-2); }
+.dev .card { border-color: rgba(198, 244, 50, .3); }
+.dev-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.group-label.lime { color: var(--lime); }
+
+.tray-stack { display: flex; }
+.tray-stack .thumb { width: 34px; height: 34px; border-radius: 10px; border: 2px solid #1A2420; }
+.tray-stack .thumb + .thumb { margin-left: -12px; }
+.topbar.is-overlay .topbar-title { opacity: 0; transform: translateY(8px); }
+.topbar.is-overlay.is-collapsed .topbar-title { opacity: 1; transform: none; }
+.m-pass .pass-bay.is-word { font-size: 40px; }
+</style>
+</head>
+<body class="m">
+<div class="stage">
+  <div class="device no-tabbar" id="device">
+    <div class="statusbar"><span class="sb-time">9:41</span><span class="sb-icons" aria-hidden="true">
+      <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.5 5.6 8.9a3.4 3.4 0 0 1 4.8 0L8 11.5Z" fill="currentColor"/><path d="M3.5 6.8a6.4 6.4 0 0 1 9 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M1.2 4.4a9.7 9.7 0 0 1 13.6 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="16" height="9" rx="2" fill="currentColor" class="sb-batt"/><path d="M25 4.5v4a2 2 0 0 0 0-4Z" fill="currentColor" opacity=".5"/></svg>
+    </span></div>
+    <div class="screens" id="screens"></div>
+    <nav class="tabbar" id="tabbar" aria-label="Main"></nav>
+    <div class="floating" id="tray" hidden></div>
+    <div class="edge-swipe" id="edge" hidden></div>
+  </div>
+  <aside class="stage-note">
+    <span id="note-logo"></span>
+    <h3>Your spot.<br><span class="lime">Before you arrive.</span></h3>
+    <p>This is the PARKLY mobile prototype. It runs like an installed app: tap, swipe and drag inside the phone.</p>
+    <ul>
+      <li><span id="n1"></span><span>Swipe from the left edge to go back.</span></li>
+      <li><span id="n2"></span><span>Drag a sheet's handle down to close it.</span></li>
+      <li><span id="n3"></span><span>Pull down on Explore or Bookings to refresh.</span></li>
+      <li><span id="n4"></span><span>Profile → tap the version 5 times for the test clock.</span></li>
+    </ul>
+  </aside>
+</div>
+<script>
+<!--#include data.js-->
+</script>
+<script>
+<!--#include engine.js-->
+</script>
+<script>
+(function () {
+"use strict";
+const P = window.PARKLY, { S, A, D, fmt, icon, esc, h, $, $$ } = P;
+const HOUR = P.HOUR, MIN = P.MIN;
+const M = (window.M = {}); // test hooks
+const device = $("#device"), screensEl = $("#screens"), tabbarEl = $("#tabbar"), trayEl = $("#tray"), edgeEl = $("#edge");
+device.addEventListener("scroll", () => { if (device.scrollTop || device.scrollLeft) device.scrollTop = device.scrollLeft = 0; }); // overflow:hidden boxes can still be scrolled by focus()
+const RM = () => P.reducedMotion();
+const wait = (ms) => new Promise((r) => setTimeout(r, RM() ? Math.min(ms, 30) : ms));
+
+/* ─────────── small view helpers ─────────── */
+const vt = () => P.defaultVehicle().type;
+const W = () => { const s = S.state.search; return { s: Date.parse(s.start), e: Date.parse(s.end), mode: s.mode }; };
+const measureOne = (f) => P.measure(f, S.state.search, S.state.bookings, S.state.demo.seed, vt());
+const price = (n, cls = "") => `<span class="mp ${cls}"><span class="rs">₹</span><span class="mp-n" data-count="${Math.round(n)}">${Math.round(n).toLocaleString("en-IN")}</span></span>`;
+const setPrice = (root, n) => { const el = root && root.querySelector(".mp-n"); if (el) P.rollNumber(el, Math.round(n).toLocaleString("en-IN")); };
+const amen = (f, max = 5) => P.amenityIcons(f).slice(0, max).map((a) => `<span class="amen-chip" title="${esc(a.label)}" aria-label="${esc(a.label)}">${icon(a.icon, 14)}</span>`).join("");
+const tl = (ms) => fmt.timeLabel(ms);
+const opensLabel = (ms) => (P.dateKey(ms) === P.dateKey(P.now()) ? "at " : fmt.dayLabel(ms).replace("Tomorrow", "tomorrow") + ", ") + fmt.timeLabel(ms); // "at 4:45 pm" / "tomorrow, 4:45 pm"
+const plain = (ms) => fmt.timeLabel(ms).replace(/ ?[ap]m$/, "");
+const durH = (s, e) => fmt.durationLabel((e - s) / HOUR);
+const empty = (ico, title, text, btn = "") => `<div class="empty"><div class="empty-ico">${icon(ico, 28)}</div><h3>${esc(title)}</h3><p class="small">${esc(text)}</p>${btn}</div>`;
+const skel = (n = 3) => Array.from({ length: n }, () => `<div class="sk-card"><div class="skeleton" style="height:112px;border-radius:0"></div><div class="p-16 stack-12"><div class="skeleton" style="height:16px;width:62%"></div><div class="skeleton" style="height:12px;width:40%"></div><div class="row-between"><div class="skeleton" style="height:28px;width:30%"></div><div class="skeleton" style="height:28px;width:24%"></div></div><div class="skeleton" style="height:6px"></div></div></div>`).join("");
+M.P = P;
+
+// Price count-up on first paint (700ms, ease-out)
+function countUp(root) {
+  if (RM()) return;
+  $$("[data-count]", root).forEach((el, i) => {
+    if (i > 5) return;
+    const to = +el.dataset.count; if (!to) return;
+    const t0 = performance.now() + i * 70;
+    const step = (t) => { const k = Math.max(0, Math.min(1, (t - t0) / 700)), v = Math.round(to * (1 - Math.pow(1 - k, 3)));
+      el.textContent = v.toLocaleString("en-IN"); if (k < 1) requestAnimationFrame(step); };
+    el.textContent = "0"; requestAnimationFrame(step);
+  });
+}
+
+/* ─────────── top bar + large title ─────────── */
+const TITLES = { welcome: "Welcome", explore: "Explore", map: "Map", parking: "Details", reserve: "Reserve", checkout: "Checkout", confirmation: "Booked", bookings: "Bookings", booking: "Booking", arrive: "Arriving", saved: "Saved", compare: "Compare", notifications: "Alerts", profile: "Profile" };
+function topbar(o = {}) {
+  const prev = stack.length > 1 ? P.Router.parse("#" + stack[stack.length - 2]) : null;
+  const backLabel = o.backLabel || (prev ? TITLES[prev.name] : TITLES[o.fallbackName || "explore"]);
+  const back = o.back === false ? "" : o.overlay
+    ? `<button class="glass-btn" data-back aria-label="Back">${icon("chevron-left", 22)}</button>`
+    : `<button class="nav-back" data-back aria-label="Back to ${esc(backLabel)}">${icon("chevron-left", 26)}<span>${esc(backLabel)}</span></button>`;
+  return `<header class="topbar ${o.large ? "is-large" : ""} ${o.overlay ? "is-overlay" : ""}">${back}<div class="topbar-title"><span>${esc(o.title || "")}</span>${o.sub ? `<small>${esc(o.sub)}</small>` : ""}</div><div class="tb-actions">${o.actions || ""}</div></header>
+    ${o.large ? `<div class="lt">${o.eyebrow ? `<div class="eyebrow ${o.eyeLime ? "is-lime" : ""}">${o.eyebrow}</div>` : ""}<h1>${esc(o.title)}</h1>${o.lead ? `<p>${o.lead}</p>` : ""}</div>` : ""}`;
+}
+const bell = () => { const n = P.unreadCount(); return `<button class="icon-btn" data-go="/notifications" aria-label="Alerts, ${n} unread">${icon("bell", 21)}${n ? `<span class="dot-count">${n}</span>` : ""}</button>`; };
+function wireTopbar(el) {
+  const tb = $(".topbar", el); if (!tb) return;
+  const lt = $(".lt", el), overlay = tb.classList.contains("is-overlay");
+  const limit = overlay ? 170 : lt ? Math.max(24, lt.offsetHeight - 18) : 4;
+  const on = () => tb.classList.toggle("is-collapsed", el.scrollTop > limit);
+  el.addEventListener("scroll", on, { passive: true }); on();
+}
+
+/* ─────────── status bar + tab bar ─────────── */
+const TABS = [["explore", "Explore", "compass"], ["map", "Map", "map"], ["bookings", "Bookings", "calendar-check"], ["saved", "Saved", "heart"], ["profile", "Profile", "user"]];
+const ROOTS = new Set(TABS.map((t) => t[0]));
+const TAB_OF = { parking: "explore", reserve: "explore", checkout: "explore", confirmation: "bookings", booking: "bookings", arrive: "bookings", compare: "saved", notifications: "explore" };
+function paintTabbar(active) {
+  const live = S.state.bookings.filter((b) => ["active", "upcoming", "pending"].includes(P.bookingStatus(b))).length;
+  tabbarEl.innerHTML = TABS.map(([k, label, ic]) => `<a class="tab ${k === active ? "is-on" : ""}" data-tab="/${k}" role="button" aria-label="${label}" ${k === active ? 'aria-current="page"' : ""}><span class="tab-ico">${icon(ic, 21)}${k === "bookings" && live ? `<span class="tab-badge">${live}</span>` : ""}</span>${label}</a>`).join("");
+}
+function paintStatus() {
+  const t = $(".sb-time"); if (t) t.textContent = plain(P.now());
+  $(".sb-batt") && $(".sb-batt").setAttribute("width", String(9 + (new Date(P.now()).getMinutes() % 8)));
+}
+setInterval(paintStatus, 5000);
+
+/* ─────────── compare tray ─────────── */
+function paintTray(show) {
+  const ids = S.state.compareIds;
+  if (!show || !ids.length) { trayEl.hidden = true; return; }
+  trayEl.hidden = false;
+  trayEl.innerHTML = `<div class="tray"><div class="tray-stack">${ids.map((id) => `<span class="thumb">${P.Illus.facility(P.facility(id))}</span>`).join("")}</div>
+    <div class="grow"><b class="small nowrap">${ids.length} place${ids.length > 1 ? "s" : ""} picked</b><div class="tiny muted nowrap">${ids.length < 2 ? "Pick one more" : "Ready to compare"}</div></div>
+    <button class="btn btn-ghost btn-icon btn-sm" data-act-global="clear-compare" aria-label="Clear compare">${icon("x", 18)}</button>
+    <button class="btn btn-primary btn-sm" data-go="/compare" ${ids.length < 2 ? "disabled" : ""}>Compare</button></div>`;
+}
+
+/* ═════════════ NAVIGATION: screen stack + push/pop over Router ═════════════ */
+const Screens = {};
+let stack = [];        // route keys, root first
+let current = null;    // {key, route, def, el, ctl}
+let pendingDir = null, adopt = null;
+const keyNow = () => (location.hash || "").replace(/^#/, "") || "/explore";
+const PARENT = { parking: () => "/explore", reserve: (r) => "/parking/" + r.params.id, checkout: (r) => "/reserve/" + r.params.id,
+  booking: () => "/bookings", arrive: (r) => "/bookings/" + r.params.id, compare: () => "/saved", notifications: () => "/explore", confirmation: () => "/bookings" };
+
+function build(route, key) {
+  const def = Screens[route.name] || Screens.explore;
+  const el = document.createElement("main");
+  el.className = "screen" + (def.tab ? " has-tabbar" : "") + (def.fixed ? " is-fixed" : "");
+  el.dataset.name = route.name;
+  el.innerHTML = def.render(route);
+  return { key, route, def, el, ctl: {} };
+}
+function mount(entry, first = true) {
+  const { el, def, route } = entry;
+  try { entry.ctl = (def.mount && def.mount(el, route)) || {}; } catch (e) { console.error(e); entry.ctl = {}; }
+  wireTopbar(el); wireSegs(el);
+  if (def.ptr) wirePull(entry);
+  if (first) countUp(el);
+}
+function destroy(entry) { if (!entry) return; try { entry.ctl.destroy && entry.ctl.destroy(); } catch (e) { console.error(e); } entry.el.remove(); }
+function chrome(entry) {
+  const r = entry.route, def = entry.def;
+  device.classList.toggle("no-tabbar", !def.tab);
+  paintTabbar(def.tab ? r.name : TAB_OF[r.name]);
+  paintTray(!!def.tray);
+  edgeEl.hidden = stack.length < 2 && !PARENT[r.name];
+}
+function show(route, key, dir) {
+  const old = current;
+  let entry;
+  if (adopt && adopt.key === key) { entry = adopt; adopt = null; dir = "none"; entry.el.classList.remove("is-under", "is-swiping", "is-settling"); entry.el.style.transform = entry.el.style.filter = ""; }
+  else { entry = build(route, key); screensEl.appendChild(entry.el); mount(entry); }
+  current = entry; chrome(entry);
+  if (!old) return;
+  if (RM() || dir === "none") { destroy(old); return; }
+  const cls = { push: ["nav-push-out", "nav-push-in"], pop: ["nav-pop-out", "nav-pop-in"], tab: [null, "nav-tab-in"] }[dir] || [null, "nav-tab-in"];
+  if (cls[0]) old.el.classList.add(cls[0]); else old.el.style.visibility = "hidden";
+  entry.el.classList.add(cls[1]);
+  setTimeout(() => { destroy(old); entry.el.classList.remove(cls[1]); }, 330);
+}
+function rerender(keepScroll = true) {
+  const e = current; if (!e) return;
+  const top = e.el.scrollTop;
+  try { e.ctl.destroy && e.ctl.destroy(); } catch (x) { console.error(x); }
+  e.el.classList.add("no-anim");
+  e.el.innerHTML = e.def.render(e.route);
+  mount(e, false);
+  if (keepScroll) e.el.scrollTop = top;
+  requestAnimationFrame(() => setTimeout(() => e.el.classList.remove("no-anim"), 50));
+}
+function onRoute(route) {
+  const key = keyNow();
+  if (!S.state.onboarded && route.name !== "welcome") { history.replaceState(null, "", "#/welcome"); return P.Router.render(); }
+  if (route.name === "landing" || route.name === "notfound") { history.replaceState(null, "", "#/explore"); return P.Router.render(); }
+  if (current && current.key === key) return rerender();
+  const forced = pendingDir; pendingDir = null;
+  let dir = forced || "push";
+  const idx = stack.indexOf(key), def = Screens[route.name] || {};
+  if (ROOTS.has(route.name) || def.root) {
+    dir = forced || (idx >= 0 && idx < stack.length - 1 ? "pop" : "tab");
+    stack = [key];
+  } else if (idx >= 0) { dir = forced || "pop"; stack = stack.slice(0, idx + 1); }
+  else stack.push(key);
+  if (!current) dir = "none";
+  show(route, key, dir);
+}
+const nav = {
+  go(path, query) { P.Router.go(path, query); },
+  // reset the stack to `base` keys, then show `target` (replacing the current history entry)
+  reset(base, target, dir = "push") { stack = base.slice(); pendingDir = dir; history.replaceState(null, "", "#" + target); P.Router.render(); },
+  back() {
+    if (P.closeTopSheet()) return;
+    if (stack.length > 1) { location.hash = stack[stack.length - 2]; return; }
+    const p = PARENT[current.route.name];
+    if (p) { const pk = p(current.route); stack = [pk, current.key]; location.hash = pk; }
+  },
+  replaceTop(path, query) { // swap the top of the stack (no back to it)
+    const k = String(path) + (query ? "?" + new URLSearchParams(query) : "");
+    stack[stack.length - 1] = k; pendingDir = "push";
+    history.replaceState(null, "", "#" + k); P.Router.render();
+  },
+};
+M.nav = nav; M.stack = () => stack.slice(); M.current = () => current && current.route;
+
+/* delegated taps for every screen */
+document.addEventListener("click", (e) => {
+  if (Date.now() < swallowUntil) { e.preventDefault(); e.stopPropagation(); return; }
+  const t = e.target.closest("[data-go],[data-back],[data-tab],[data-act],[data-act-global]");
+  if (!t || t.disabled || !device.contains(t)) return;
+  if (t.hasAttribute("data-back")) return nav.back();
+  if (t.dataset.tab) { if (current && current.route.name === t.dataset.tab.slice(1)) { current.el.scrollTo({ top: 0, behavior: RM() ? "auto" : "smooth" }); return; } return nav.go(t.dataset.tab); }
+  if (t.dataset.go) { e.preventDefault(); return nav.go(t.dataset.go); }
+  if (t.dataset.actGlobal === "clear-compare") { A.clearCompare(); return; }
+  if (t.dataset.act && current) {
+    const scope = t.closest(".overlay") ? null : current;
+    const fn = (scope ? scope.def.acts : null) || {};
+    const handler = fn[t.dataset.act] || (current.def.acts || {})[t.dataset.act];
+    if (handler) { e.preventDefault(); handler(t, current.el, current.route, e); }
+  }
+}, true);
+let swallowUntil = 0;
+
+/* ─────────── swipe from the left edge to go back ─────────── */
+(function swipeBack() {
+  let st = null;
+  edgeEl.addEventListener("pointerdown", (e) => {
+    if (!current || P.closeTopSheet()) return;
+    const prevKey = stack.length > 1 ? stack[stack.length - 2] : PARENT[current.route.name] && PARENT[current.route.name](current.route);
+    if (!prevKey) return;
+    edgeEl.setPointerCapture(e.pointerId);
+    const route = P.Router.parse("#" + prevKey), under = build(route, prevKey);
+    under.el.classList.add("is-under"); screensEl.insertBefore(under.el, current.el); mount(under, false);
+    current.el.classList.add("is-swiping");
+    st = { x0: e.clientX, t0: performance.now(), under, prevKey, w: screensEl.clientWidth, dx: 0 };
+  });
+  edgeEl.addEventListener("pointermove", (e) => {
+    if (!st) return;
+    st.dx = Math.max(0, e.clientX - st.x0); const k = st.dx / st.w;
+    current.el.style.transform = `translateX(${st.dx}px)`;
+    st.under.el.style.transform = `translateX(${-28 * (1 - k)}%)`; st.under.el.style.filter = `brightness(${0.6 + 0.4 * k})`;
+  });
+  const end = () => {
+    if (!st) return;
+    const s = st; st = null;
+    const v = s.dx / Math.max(1, performance.now() - s.t0), done = s.dx > s.w * 0.33 || (v > 0.5 && s.dx > 30);
+    [current.el, s.under.el].forEach((x) => x.classList.add("is-settling"));
+    requestAnimationFrame(() => {
+      current.el.style.transform = done ? "translateX(100%)" : "";
+      s.under.el.style.transform = done ? "translateX(0)" : ""; s.under.el.style.filter = done ? "none" : "";
+    });
+    setTimeout(() => {
+      if (done) {
+        adopt = s.under;
+        if (stack.length < 2) stack = [s.prevKey, current.key];
+        location.hash = s.prevKey;
+      } else { destroy(s.under); current.el.classList.remove("is-swiping", "is-settling"); current.el.style.transform = ""; }
+    }, 250);
+  };
+  edgeEl.addEventListener("pointerup", end); edgeEl.addEventListener("pointercancel", end);
+})();
+
+/* ─────────── bottom sheets: drag the grabber down to dismiss ─────────── */
+function dragSheet(panel, close) {
+  const grip = panel.querySelector(".sheet-grip"), head = panel.querySelector(".sheet-head");
+  [grip, head].forEach((x) => x && x.classList.add("sheet-drag"));
+  let d = null;
+  const down = (e) => { if (e.target.closest("button")) return; e.currentTarget.setPointerCapture(e.pointerId); d = { y0: e.clientY, t0: performance.now(), dy: 0 }; panel.classList.add("is-dragging"); };
+  const move = (e) => { if (!d) return; d.dy = Math.max(-12, e.clientY - d.y0); panel.style.transform = `translateY(${d.dy < 0 ? d.dy / 4 : d.dy}px)`; };
+  const up = () => {
+    if (!d) return; const q = d; d = null; panel.classList.remove("is-dragging");
+    const v = q.dy / Math.max(1, performance.now() - q.t0);
+    if (q.dy > Math.min(140, panel.offsetHeight * 0.3) || (v > 0.6 && q.dy > 24)) { panel.classList.add("is-flung"); close(); }
+    else { panel.classList.add("is-settling"); panel.style.transform = ""; setTimeout(() => panel.classList.remove("is-settling"), 280); }
+  };
+  [grip, head].forEach((x) => { if (!x) return; x.addEventListener("pointerdown", down); x.addEventListener("pointermove", move); x.addEventListener("pointerup", up); x.addEventListener("pointercancel", up); });
+}
+// every sheet (ours and the engine's confirm dialogs) becomes draggable
+new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => {
+  if (n.nodeType !== 1 || !n.classList.contains("overlay-sheet")) return;
+  const panel = n.querySelector(".sheet");
+  dragSheet(panel, () => { const b = n.querySelector(".overlay-backdrop"); b && b.click(); if (b && !n.classList.contains("is-closing")) { const x = n.querySelector("[data-close]"); x && x.click(); } });
+}))).observe(device, { childList: true });
+const sheetTicks = new Set();
+function sheet(o) {
+  const s = P.openSheet({ ...o, kind: "sheet", onClose: () => { s && s._tick && sheetTicks.delete(s._tick); o.onClose && o.onClose(); } });
+  wireSegs(s.el);
+  return s;
+}
+
+/* ─────────── segmented control with sliding thumb ─────────── */
+function wireSegs(root) {
+  $$(".seg", root).forEach((seg) => {
+    if (!seg.querySelector(".seg-thumb")) seg.insertAdjacentHTML("afterbegin", '<span class="seg-thumb" aria-hidden="true"></span>');
+    seg.setAttribute("role", "tablist");
+    segPaint(seg);
+  });
+}
+function segPaint(seg) {
+  const on = seg.querySelector(":scope > .is-on"), th = seg.querySelector(".seg-thumb");
+  if (!on || !th) return;
+  requestAnimationFrame(() => { th.style.width = on.offsetWidth + "px"; th.style.transform = `translateX(${on.offsetLeft}px)`; });
+  $$(":scope > button", seg).forEach((b) => b.setAttribute("aria-selected", b === on));
+}
+function segSet(seg, btn) { $$(":scope > button", seg).forEach((b) => b.classList.toggle("is-on", b === btn)); segPaint(seg); }
+
+/* ─────────── wheel picker (scroll-snap columns) ───────────
+   wheel(host, [{items:[{v,label,past}], value, wide}], onChange(values[])) → {get, set(colIndex, v)} */
+function wheel(host, cols, onChange) {
+  host.className = "wheel";
+  host.innerHTML = cols.map((c, ci) => `<div class="wcol ${c.wide ? "w-wide" : ""}" data-col="${ci}" role="listbox" tabindex="0" aria-label="${esc(c.label || "")}"><div class="w-pad"></div>${c.items.map((it, i) => `<div class="w-it ${it.past ? "is-past" : ""}" data-i="${i}" role="option">${esc(it.label)}</div>`).join("")}<div class="w-pad"></div></div>`).join("");
+  const colEls = $$(".wcol", host), vals = cols.map((c) => c.value);
+  const idxOf = (ci, v) => Math.max(0, cols[ci].items.findIndex((it) => it.v === v));
+  const paint3d = (col) => {
+    const mid = col.scrollTop + 80;
+    $$(".w-it", col).forEach((it) => { const off = (it.offsetTop - 80 + 20 - mid + 20) / 40; const a = Math.max(-3, Math.min(3, off));
+      it.style.transform = `rotateX(${-a * 20}deg) scale(${1 - Math.abs(a) * 0.06})`; it.style.opacity = String(1 - Math.min(0.75, Math.abs(a) * 0.28)); });
+  };
+  colEls.forEach((col, ci) => {
+    col.scrollTop = idxOf(ci, vals[ci]) * 40; paint3d(col);
+    let t = 0, raf = 0;
+    col.addEventListener("scroll", () => {
+      if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint3d(col); });
+      clearTimeout(t);
+      t = setTimeout(() => {
+        const i = Math.max(0, Math.min(cols[ci].items.length - 1, Math.round(col.scrollTop / 40))), v = cols[ci].items[i].v;
+        if (v !== vals[ci]) { vals[ci] = v; if (navigator.vibrate) try { navigator.vibrate(4); } catch {} onChange && onChange(vals.slice(), ci); }
+      }, 110);
+    }, { passive: true });
+    col.addEventListener("click", (e) => { const it = e.target.closest(".w-it"); if (it) col.scrollTo({ top: +it.dataset.i * 40, behavior: RM() ? "auto" : "smooth" }); });
+    col.addEventListener("keydown", (e) => { const d = { ArrowDown: 1, ArrowUp: -1 }[e.key]; if (d) { e.preventDefault(); col.scrollTo({ top: col.scrollTop + d * 40, behavior: "auto" }); } });
+  });
+  return { get: () => vals.slice(), set(ci, v) { vals[ci] = v; colEls[ci].scrollTop = idxOf(ci, v) * 40; paint3d(colEls[ci]); } };
+}
+
+/* ─────────── pull to refresh ─────────── */
+function wirePull(entry) {
+  const el = entry.el;
+  el.insertAdjacentHTML("afterbegin", `<div class="ptr" aria-hidden="true">${icon("refresh-cw", 18)}</div>`);
+  const ptr = $(".ptr", el);
+  let y0 = null, pull = 0, busy = false, mouse = false;
+  const set = (p) => { pull = p; el.style.setProperty("--pull", p + "px"); ptr.style.opacity = String(Math.min(1, p / 60)); ptr.style.transform = `translateY(${Math.min(p, 80) - 40}px) rotate(${p * 3}deg) scale(${0.6 + Math.min(0.4, p / 150)})`; };
+  const start = (y) => { if (busy || el.scrollTop > 0) return; y0 = y; };
+  const move = (y, ev) => {
+    if (y0 === null) return; const dy = y - y0;
+    if (dy <= 0) { if (pull) set(0); el.classList.remove("is-pulling"); return; }
+    if (dy > 6) { el.classList.add("is-pulling"); ev && ev.cancelable && ev.preventDefault(); set(Math.min(130, dy * 0.55)); }
+  };
+  const end = async () => {
+    if (y0 === null) return; y0 = null;
+    el.classList.remove("is-pulling"); el.classList.add("is-releasing");
+    if (pull > 62) {
+      if (mouse) swallowUntil = Date.now() + 250;
+      busy = true; el.classList.add("is-refreshing"); set(56); ptr.style.transform = "translateY(16px)";
+      await refreshScreen(entry);
+      el.classList.remove("is-refreshing"); busy = false;
+    }
+    set(0); ptr.style.opacity = "0";
+    setTimeout(() => el.classList.remove("is-releasing"), 320);
+  };
+  el.addEventListener("touchstart", (e) => { mouse = false; start(e.touches[0].clientY); }, { passive: true });
+  el.addEventListener("touchmove", (e) => move(e.touches[0].clientY, e), { passive: false });
+  el.addEventListener("touchend", end); el.addEventListener("touchcancel", end);
+  el.addEventListener("mousedown", (e) => { if (e.button === 0 && !e.target.closest("input,textarea,.map,.wcol")) { mouse = true; start(e.clientY); } });
+  const mm = (e) => { if (mouse && y0 !== null) { move(e.clientY, e); if (pull > 8) swallowUntil = Date.now() + 250; } };
+  const mu = () => mouse && end();
+  window.addEventListener("mousemove", mm); window.addEventListener("mouseup", mu);
+  const prev = entry.ctl.destroy;
+  entry.ctl.destroy = () => { window.removeEventListener("mousemove", mm); window.removeEventListener("mouseup", mu); prev && prev(); };
+}
+async function refreshScreen(entry) {
+  const box = entry.el.querySelector("[data-skel]");
+  if (box) box.innerHTML = skel(+box.dataset.skel || 3);
+  A.refreshAvailability();
+  await wait(900);
+  if (current === entry) rerender(false);
+  P.toast("Live availability refreshed", "ok");
+}
+M.refresh = () => current && refreshScreen(current);
+
+/* ═════════════ SHARED SHEETS ═════════════ */
+// Wheel columns: days (today + 13) and half-hour times
+function dayItems(n = 14) {
+  const d0 = P.startOfDay(P.now());
+  return Array.from({ length: n }, (_, i) => { const d = P.addDays(d0, i); return { v: P.dateKey(d), label: i === 0 ? "Today" : i === 1 ? "Tomorrow" : fmt.dateLabel(d) }; });
+}
+const timeItems = (dk) => P.TIMES.map((t) => ({ v: t, label: fmt.time12(t), past: dk && P.at(dk, t).getTime() < P.now() - MIN }));
+
+/* Time window sheet — Enter after (wheel) + duration (chips + mini dial). onApply({start,end,mode}) */
+function timeSheet(o = {}) {
+  const w = W(), base = { s: o.start ?? w.s, e: o.end ?? w.e, mode: o.mode || w.mode };
+  let dk = P.dateKey(base.s), tk = P.timeKey(P.ceilHalfHour(base.s)), mode = base.mode, dur = Math.max(30, Math.round((base.e - base.s) / MIN));
+  if (mode === "daily") dur = Math.max(1440, Math.round(dur / 1440) * 1440);
+  const s = sheet({ title: o.title || "When are you parking?", body: `
+    <div class="seg seg-block mb-16" data-mode><button class="${mode === "hourly" ? "is-on" : ""}" data-m="hourly">By the hour</button><button class="${mode === "daily" ? "is-on" : ""}" data-m="daily">By the day</button></div>
+    <div class="group-label">Enter after</div><div data-wheel></div>
+    <div class="group-label mt-24">How long</div>
+    <div class="chip-scroll mb-12" data-quick></div>
+    <div class="dial dial-sm" data-dial></div>
+    <div class="mt-12" data-err></div>`,
+    footer: `<button class="btn btn-primary btn-lg btn-block" data-apply>Show parking</button>` });
+  const body = s.body, apply = s.footer.querySelector("[data-apply]");
+  const startMs = () => P.at(dk, tk).getTime();
+  const quick = () => (mode === "hourly" ? [60, 120, 180, 240, 360, 480] : [1440, 2880, 4320, 7200]);
+  let dial;
+  function paint() {
+    $("[data-quick]", body).innerHTML = quick().map((m) => `<button class="chip ${m === dur ? "is-on" : ""}" data-q="${m}">${mode === "hourly" ? m / 60 + " h" : m / 1440 + (m === 1440 ? " day" : " days")}</button>`).join("");
+    const past = startMs() < P.now() - MIN;
+    $("[data-err]", body).innerHTML = past ? `<div class="notice notice-warn">${icon("triangle-alert", 16)}<span>That time has already passed. Pick a later entry time.</span></div>` : "";
+    apply.disabled = past;
+    apply.textContent = past ? "Pick a later time" : `Show parking for ${fmt.durationLabel(dur / 60)}`;
+  }
+  const mountDial = () => {
+    dial && dial.destroy();
+    dial = P.Dial.mount($("[data-dial]", body), mode === "hourly"
+      ? { valueMin: dur, minMin: 30, maxMin: 1440, stepMin: 30, startMs: startMs(), onChange: (v) => { dur = v; paint(); } }
+      : { valueMin: dur, minMin: 1440, maxMin: 10080, stepMin: 1440, label: "Days", startMs: startMs(), onChange: (v) => { dur = v; paint(); } });
+  };
+  const wh = wheel($("[data-wheel]", body), [{ items: dayItems(), value: dk, wide: true, label: "Day" }, { items: timeItems(dk), value: tk, wide: true, label: "Time" }], (vals) => {
+    [dk, tk] = vals; dial.update({ startMs: startMs() }); paint();
+  });
+  $("[data-mode]", body).addEventListener("click", (e) => {
+    const b = e.target.closest("[data-m]"); if (!b) return; segSet(b.parentElement, b); mode = b.dataset.m;
+    dur = mode === "daily" ? 1440 : 120; mountDial(); paint();
+  });
+  $("[data-quick]", body).addEventListener("click", (e) => { const b = e.target.closest("[data-q]"); if (!b) return; dur = +b.dataset.q; dial.set(dur, true); paint(); });
+  apply.onclick = () => { const st = startMs(); s.close(); (o.onApply || ((x) => A.setSearch(x)))({ start: st, end: st + dur * MIN, mode }); };
+  mountDial(); paint();
+  M.wheel = wh;
+  return s;
+}
+
+/* Destination search sheet (combobox) */
+function destSheet() {
+  const st = S.state;
+  const s = sheet({ title: "Where are you going?", body: `
+    <div class="input-wrap mb-16">${icon("search", 18)}<input class="input" data-q placeholder="Search a place, market or landmark" autocomplete="off" role="combobox" aria-expanded="true" aria-controls="dest-list"></div>
+    <div id="dest-list" role="listbox"></div>` });
+  const list = $("#dest-list", s.body), q = $("[data-q]", s.body);
+  const row = (d, ic, extra = "") => `<button class="grow-row" data-d="${d.id}" role="option"><span class="ri">${icon(ic, 16)}</span><span class="lbl">${esc(extra || d.name)}<small>${esc(extra ? d.name : d.area + " · " + d.kind)}</small></span></button>`;
+  function paint() {
+    const t = q.value.trim().toLowerCase();
+    if (t) {
+      const hits = D.destinations.filter((d) => (d.name + " " + d.area + " " + d.kind).toLowerCase().includes(t));
+      list.innerHTML = hits.length ? `<div class="group">${hits.map((d) => row(d, "map-pin")).join("")}</div>` : `<p class="small muted center p-16">No match for “${esc(q.value)}”. Try Khan Market or Saket.</p>`;
+      return;
+    }
+    list.innerHTML = `<div class="group mb-16"><button class="grow-row" data-near><span class="ri lime">${icon("locate-fixed", 16)}</span><span class="lbl">Near me<small>Use my current location</small></span></button>
+      ${st.savedPlaces.map((p) => row(P.destination(p.destId), p.label === "Home" ? "house" : "briefcase", p.label)).join("")}</div>
+      <div class="group-label">Recent</div><div class="group mb-16">${st.recentDest.map((id) => P.destination(id)).filter(Boolean).map((d) => row(d, "clock")).join("")}</div>
+      <div class="group-label">Popular in Delhi NCR</div><div class="group">${D.destinations.filter((d) => !st.recentDest.includes(d.id)).map((d) => row(d, "map-pin")).join("")}</div>`;
+  }
+  q.addEventListener("input", paint);
+  list.addEventListener("click", (e) => {
+    if (e.target.closest("[data-near]")) { A.nearMe(); s.close(); P.toast("Using your location near Mandi House", "info"); return; }
+    const b = e.target.closest("[data-d]"); if (!b) return;
+    A.setDestination(b.dataset.d); s.close();
+  });
+  paint();
+  return s;
+}
+
+/* Filters sheet with live “Show N results” */
+function filterSheet() {
+  let f = JSON.parse(JSON.stringify(S.state.search.filters));
+  const chipset = (key, opts, multi) => `<div class="chip-row" data-set="${key}" data-multi="${multi ? 1 : 0}">${opts.map(([v, l]) => `<button class="chip ${multi ? (f[key].includes(v) ? "is-on" : "") : f[key] === v ? "is-on" : ""}" data-v="${v}">${esc(l)}</button>`).join("")}</div>`;
+  const sw = (key, label, sub) => `<label class="grow-row no-press"><span class="lbl">${label}<small>${sub}</small></span><span class="switch"><input type="checkbox" data-sw="${key}" ${f[key] ? "checked" : ""}><span class="switch-track"></span></span></label>`;
+  const s = sheet({ title: "Filters", body: `
+    <div class="group-label">Max price per hour</div>
+    <div class="card card-pad mb-24"><div class="row-between mb-8"><span class="small muted" data-pl>Up to</span><b class="mono" data-pv></b></div><input type="range" class="range" min="0" max="200" step="10" data-price aria-label="Maximum price per hour"></div>
+    <div class="group-label">Distance from destination</div>${chipset("maxDistance", [[1, "1 km"], [2, "2 km"], [3, "3 km"], [5, "5 km"], [10, "10 km"], [0, "Any"]])}
+    <div class="group-label mt-24">Type of parking</div>${chipset("types", Object.entries(D.typeLabels), true)}
+    <div class="group-label mt-24">Security</div>${chipset("security", Object.entries(D.securityLabels), true)}
+    <div class="group-label mt-24">Rating</div>${chipset("minRating", [[0, "Any"], [3.5, "3.5★ +"], [4, "4★ +"], [4.5, "4.5★ +"]])}
+    <div class="group mt-24">${sw("onlyAvailable", "Available for my time", "Hide places that are full")}${sw("ev", "EV charging", "Chargers you can reserve")}${sw("accessible", "Accessible bays", "Step-free, wider bays")}${sw("motorcycle", "Two-wheeler bays", "Bikes and scooters")}${sw("overnight", "Overnight parking", "Stay past midnight")}${sw("instant", "Instant booking", "Confirmed right away")}</div>`,
+    footer: `<button class="btn btn-secondary btn-lg" data-reset style="flex:0 0 auto">Reset</button><button class="btn btn-primary btn-lg" data-apply></button>` });
+  const b = s.body, range = $("[data-price]", b);
+  function paint() {
+    range.value = f.maxPrice || 200; range.style.setProperty("--p", ((f.maxPrice || 200) / 200) * 100 + "%");
+    $("[data-pv]", b).textContent = f.maxPrice ? `₹${f.maxPrice}/h` : "Any"; $("[data-pl]", b).textContent = f.maxPrice ? "Up to" : "No limit set";
+    const n = P.searchFacilities({ search: { ...S.state.search, filters: f } }).results.length;
+    const btn = s.footer.querySelector("[data-apply]"); btn.textContent = n ? `Show ${n} result${n > 1 ? "s" : ""}` : "No results, loosen filters"; btn.disabled = !n;
+  }
+  range.addEventListener("input", () => { const v = +range.value; f.maxPrice = v >= 200 ? 0 : v; paint(); });
+  b.addEventListener("click", (e) => {
+    const c = e.target.closest("[data-set] .chip"); if (!c) return;
+    const set = c.parentElement, key = set.dataset.set, v = isNaN(+c.dataset.v) ? c.dataset.v : +c.dataset.v;
+    if (set.dataset.multi === "1") { f[key] = f[key].includes(v) ? f[key].filter((x) => x !== v) : [...f[key], v]; c.classList.toggle("is-on"); }
+    else { f[key] = v; $$(".chip", set).forEach((x) => x.classList.toggle("is-on", x === c)); }
+    paint();
+  });
+  b.addEventListener("change", (e) => { const k = e.target.dataset.sw; if (k) { f[k] = e.target.checked; paint(); } });
+  s.footer.querySelector("[data-reset]").onclick = () => { f = JSON.parse(JSON.stringify(D.filterDefaults)); s.close(); A.resetFilters(); };
+  s.footer.querySelector("[data-apply]").onclick = () => { s.close(); A.setFilters(f); };
+  paint();
+  return s;
+}
+
+/* Sort action sheet */
+function sortSheet() {
+  const cur = S.state.search.sort;
+  const s = sheet({ title: "Sort results", body: `<div class="act-list">${Object.entries(D.sortLabels).map(([k, l]) => `<button class="list-row" data-s="${k}"><span class="grow">${esc(l)}</span>${k === cur ? icon("check", 20, "check-mark") : ""}</button>`).join("")}</div>` });
+  s.body.addEventListener("click", (e) => { const b = e.target.closest("[data-s]"); if (b) { s.close(); A.setSearch({ sort: b.dataset.s }); } });
+}
+
+/* Add / edit vehicle sheet (Indian plate validation) */
+function vehicleSheet(v, onSaved) {
+  const isNew = !v; v = v || { name: "", plate: "", type: "hatchback", color: "" };
+  const s = sheet({ title: isNew ? "Add a vehicle" : "Edit vehicle", body: `
+    <div class="group-label">Details</div>
+    <div class="group mb-16">
+      <label class="grow-row no-press"><span class="lbl">Name</span><input class="row-input" data-f="name" value="${esc(v.name)}" placeholder="Dad's Innova" maxlength="30"></label>
+      <label class="grow-row no-press"><span class="lbl">Number plate</span><input class="row-input mono" data-f="plate" value="${esc(v.plate)}" placeholder="DL 8C AF 4521" maxlength="14" autocapitalize="characters" style="text-transform:uppercase"></label>
+      <label class="grow-row no-press"><span class="lbl">Colour</span><input class="row-input" data-f="color" value="${esc(v.color || "")}" placeholder="Optional"></label>
+    </div>
+    <div class="group-label">Type</div>
+    <div class="chip-row mb-16" data-types>${D.vehicleTypes.map((t) => `<button class="chip ${t === v.type ? "is-on" : ""}" data-t="${t}">${esc(D.vehicleLabels[t])}</button>`).join("")}</div>
+    <div class="row gap-12 mb-8"><span class="small muted">Preview</span><span data-prev>${P.plate(v.plate || "DL 00 XX 0000")}</span></div>
+    <div data-err></div>`,
+    footer: `<button class="btn btn-primary btn-lg btn-block" data-save>${isNew ? "Add vehicle" : "Save changes"}</button>` });
+  let type = v.type;
+  const val = (k) => $(`[data-f=${k}]`, s.body).value;
+  $("[data-f=plate]", s.body).addEventListener("input", (e) => {
+    $("[data-prev]", s.body).innerHTML = P.plate(P.normPlate(e.target.value) || "DL 00 XX 0000");
+    const okp = P.validPlate(e.target.value); $("[data-err]", s.body).innerHTML = e.target.value.length > 6 && !okp ? `<div class="field-error">${icon("info", 14)}Use the Indian format, like DL 8C AF 4521.</div>` : "";
+  });
+  $("[data-types]", s.body).addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (!b) return; type = b.dataset.t; $$("[data-t]", s.body).forEach((x) => x.classList.toggle("is-on", x === b)); });
+  s.footer.querySelector("[data-save]").onclick = () => {
+    const r = A.upsertVehicle({ ...v, name: val("name").trim(), plate: val("plate"), color: val("color").trim(), type });
+    if (!r.ok) { $("[data-err]", s.body).innerHTML = `<div class="notice notice-danger">${icon("circle-x", 16)}<span>${esc(r.error)}</span></div>`; return; }
+    s.close(); P.toast(isNew ? "Vehicle added" : "Vehicle saved", "ok"); onSaved && onSaved(r.value);
+  };
+}
+
+/* Add to calendar sheet */
+function calendarSheet(b) {
+  const f = P.facility(b.facilityId), l = P.calendarLinks(b, f);
+  const s = sheet({ title: "Add to calendar", body: `<div class="act-list">
+    <a class="list-row" href="${esc(l.google)}" target="_blank" rel="noopener"><span class="ico-wrap">${icon("calendar-plus", 18)}</span><span class="grow">Google Calendar</span>${icon("arrow-up-right", 16, "chev")}</a>
+    <button class="list-row" data-ics><span class="ico-wrap">${icon("download", 18)}</span><span class="grow">Download .ics file<div class="tiny muted">Works with Apple and Outlook</div></span></button>
+    <button class="list-row" data-copy><span class="ico-wrap">${icon("copy", 18)}</span><span class="grow">Copy booking details</span></button></div>` });
+  $("[data-ics]", s.body).onclick = () => { P.downloadFile(`parkly-${b.ref}.ics`, l.ics, "text/calendar"); s.close(); P.toast("Calendar file downloaded", "ok"); };
+  $("[data-copy]", s.body).onclick = () => {
+    const txt = `PARKLY ${b.ref}\n${f.name}, ${b.bay}\n${fmt.windowLabel(b.start, b.end)}\n${b.vehicle.plate}`;
+    try { navigator.clipboard.writeText(txt).then(() => P.toast("Copied", "ok"), () => P.toast("Copied", "ok")); } catch { P.toast("Copied", "ok"); }
+    s.close();
+  };
+}
+
+/* ═════════════ SCREENS ═════════════ */
+
+/* 1 · WELCOME */
+Screens.welcome = {
+  root: true,
+  render() {
+    const bays = Array.from({ length: 12 }, (_, i) => `<div class="wb ${i === 6 ? "is-lit" : ""}" style="--d:${i * 60}ms">${i === 6 ? `<span>L2·14</span>` : `<i style="--c:${["#33423B", "#6F827B", "#D9D6CC", "#3D5A80", "#B9483A", "#8E9893"][i % 6]}"></i>`}</div>`).join("");
+    const slides = [["calendar-clock", "A space held for your hours", "Pick when you enter and when you leave. The space waits for you."],
+      ["receipt", "Price fixed before you pay", "See the full bill, fees and GST included. No surprise at the gate."],
+      ["qr-code", "Scan and park", "Show your pass at the barrier. Drive to your bay. That's it."]];
+    return `<div class="welcome grain">
+      <div class="wl-top"><span>${P.logo(30)}</span><button class="btn btn-ghost btn-sm" data-act="guest">Skip</button></div>
+      <h1 class="wl-h"><span>Your spot.</span><span class="lime">Before you arrive.</span></h1>
+      <div class="wl-bays" aria-hidden="true">${bays}</div>
+      <div class="wl-slides" data-slides>${slides.map(([ic, t, d]) => `<div class="wl-slide"><span class="wl-ico">${icon(ic, 20)}</span><div><b>${t}</b><p>${d}</p></div></div>`).join("")}</div>
+      <div class="wl-dots" data-dots>${slides.map((_, i) => `<i class="${i ? "" : "is-on"}"></i>`).join("")}</div>
+      <div class="wl-cta"><button class="btn btn-primary btn-lg btn-block" data-act="start">Find parking ${icon("arrow-right", 18)}</button>
+      <button class="btn btn-ghost btn-lg btn-block" data-act="guest">Continue as guest</button></div></div>`;
+  },
+  mount(el) {
+    const sl = $("[data-slides]", el), dots = $$("[data-dots] i", el);
+    sl.addEventListener("scroll", () => { const i = Math.round(sl.scrollLeft / sl.clientWidth); dots.forEach((d, k) => d.classList.toggle("is-on", k === i)); }, { passive: true });
+    const t = setInterval(() => { if (!el.isConnected) return; const i = (Math.round(sl.scrollLeft / sl.clientWidth) + 1) % 3; sl.scrollTo({ left: i * sl.clientWidth, behavior: RM() ? "auto" : "smooth" }); }, 4200);
+    return { destroy: () => clearInterval(t) };
+  },
+  acts: {
+    start: () => { A.completeOnboarding(false); nav.reset([], "/explore", "push"); },
+    guest: () => { A.completeOnboarding(true); nav.reset([], "/explore", "push"); P.toast("Browsing as a guest", "info"); },
+  },
+};
+
+/* result card */
+function rcard(r, o = {}) {
+  const f = r.f, st = S.state, saved = st.savedIds.includes(f.id), cmp = st.compareIds.includes(f.id), tone = P.availTone(r.free, f.capacity);
+  const unit = W().mode === "daily" && f.dailyRate ? `₹${P.dailyFor(f, vt())}/day` : `₹${r.rate}/h`;
+  return `<article class="rcard tap ${o.sel ? "is-sel" : ""}" data-fid="${f.id}">
+    <div class="rcard-media" data-go="/parking/${f.id}">${P.Illus.facility(f)}<div class="rcard-badges">${f.instant ? P.badge("Instant", "lime", "zap") : P.badge("Operator confirms", "warn")}${tone === "low" ? P.badge(r.free + " left", "warn") : ""}</div></div>
+    <button class="heart ${saved ? "is-on" : ""}" data-act="save" data-id="${f.id}" aria-pressed="${saved}" aria-label="${saved ? "Remove from saved" : "Save"} ${esc(f.name)}">${icon("heart", 19)}</button>
+    <div class="rcard-body" data-go="/parking/${f.id}">
+      <div class="row-between" style="align-items:flex-end">
+        <div class="grow"><div class="rcard-name ellipsis">${esc(f.name)}</div>
+          <div class="rcard-meta"><span>${esc(f.area)}</span>·<span class="mono">${fmt.kmLabel(r.km)}</span>·<span>${icon("footprints", 12)} ${r.walk} min</span>·${P.stars(f.rating)}</div></div>
+      </div>
+      <div class="row-between" style="align-items:flex-end"><div>${price(r.total)}<div class="price-sub">total · ${unit}</div></div><div class="amen-row" style="justify-content:flex-end;max-width:150px">${amen(f, 4)}</div></div>
+      ${r.reason ? `<div class="reason">${icon("sparkles", 14)}<span>${esc(r.reason)}</span></div>` : ""}
+    </div>
+    <div class="rcard-body" style="margin-top:0;padding-top:0"><div class="rcard-foot">${P.occ(r.free, f.capacity)}
+      <button class="btn btn-primary btn-md" data-act="book" data-id="${f.id}" ${r.free <= 0 ? "disabled" : ""} style="min-width:76px">${r.free <= 0 ? "Full" : "Book"}</button></div>
+      ${o.cmp === false ? "" : `<button class="cmp-toggle check ${cmp ? "is-on" : ""}" data-act="cmp" data-id="${f.id}" aria-pressed="${cmp}" style="min-height:32px"><span class="check-box"></span>Compare</button>`}</div>
+  </article>`;
+}
+const cardActs = {
+  save: (t) => { const id = t.dataset.id, was = S.state.savedIds.includes(id); A.toggleSaved(id); P.toast(was ? "Removed from Saved" : "Saved. Find it in the Saved tab.", was ? "info" : "ok"); },
+  cmp: (t) => { const r = A.toggleCompare(t.dataset.id); if (!r.ok) P.toast(r.error, "warn"); },
+  book: (t) => nav.go("/reserve/" + t.dataset.id),
+};
+function syncCards(root) { // hearts + compare ticks without re-rendering
+  $$("[data-act=save]", root).forEach((b) => { const on = S.state.savedIds.includes(b.dataset.id); if (on !== b.classList.contains("is-on")) { b.classList.toggle("is-on", on); b.classList.remove("is-pop"); void b.offsetWidth; on && b.classList.add("is-pop"); b.setAttribute("aria-pressed", on); } });
+  $$("[data-act=cmp]", root).forEach((b) => { const on = S.state.compareIds.includes(b.dataset.id); b.classList.toggle("is-on", on); b.setAttribute("aria-pressed", on); });
+}
+
+/* explore header pieces (re-painted on search change) */
+function searchbarHTML() {
+  const c = P.searchCenter(S.state.search);
+  return `<button class="searchbar tap" data-act="dest" aria-label="Change destination: ${esc(c.name)}">${icon("search", 19)}<span class="grow"><small>Parking near</small><b>${esc(c.name)}</b></span><span class="near" data-act="near">${icon("locate-fixed", 14)}Near me</span></button>`;
+}
+function whenHTML() {
+  const w = W();
+  return `<button class="when tap" data-act="when" aria-label="Change time"><span class="when-cell"><div class="eyebrow">Enter after</div><b>${tl(w.s)}</b><small>${fmt.dayLabel(w.s)}</small></span>
+    <span class="when-dur">${fmt.durationShort(Math.round((w.e - w.s) / MIN))}</span>
+    <span class="when-cell right"><div class="eyebrow">Exit before</div><b>${tl(w.e)}</b><small>${fmt.dayLabel(w.e)}</small></span></button>`;
+}
+function filterRowHTML() {
+  const af = P.activeFilters(S.state.search.filters);
+  return `<div class="filter-row"><button class="chip ${af.length ? "is-on" : ""}" data-act="filters">${icon("sliders-horizontal", 15)}Filters${af.length ? `<span class="n">${af.length}</span>` : ""}</button>
+    <button class="chip" data-act="sort">${icon("list", 15)}${esc(D.sortLabels[S.state.search.sort])}${icon("chevron-down", 14)}</button>
+    ${af.map((a) => `<button class="chip chip-sm" data-act="unfilter" data-k="${a.key}" style="height:36px">${esc(a.label)}${icon("x", 13, "chip-x")}</button>`).join("")}</div>`;
+}
+const commonActs = {
+  ...cardActs,
+  dest: (t, el, r, e) => { if (e.target.closest("[data-act=near]")) return; destSheet(); },
+  near: (t, el, r, e) => { e.stopPropagation(); A.nearMe(); P.toast("Using your location near Mandi House", "info"); },
+  when: () => timeSheet(),
+  filters: () => filterSheet(),
+  sort: () => sortSheet(),
+  unfilter: (t) => { const a = P.activeFilters(S.state.search.filters).find((x) => x.key === t.dataset.k); if (a) A.setFilters(a.clear(S.state.search.filters)); },
+};
+
+/* 2 · EXPLORE */
+function resultsHTML() {
+  const { results } = P.searchFacilities();
+  if (!results.length) return empty("search-x", "No parking matches", "Try a wider distance or fewer filters.", `<button class="btn btn-secondary btn-md" data-act="reset-f">Clear filters</button>`);
+  return `<div class="rlist m-stagger">${results.slice(0, 8).map((r) => rcard(r)).join("")}</div>
+    ${results.length > 8 ? `<button class="btn btn-secondary btn-md btn-block mt-12" data-go="/map">See all ${results.length} on the map</button>` : ""}`;
+}
+Screens.explore = {
+  tab: true, tray: true, ptr: true,
+  render() {
+    const st = S.state, hr = new Date(P.now()).getHours(), first = st.user.guest ? "" : ", " + st.user.name.split(" ")[0];
+    const greet = (hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening") + first;
+    const c = P.searchCenter(st.search), n = P.searchFacilities().results.length;
+    const viewed = st.recentlyViewed.map(P.facility).filter(Boolean);
+    return `${topbar({ title: "Explore", large: true, back: false, eyebrow: esc(greet), eyeLime: true, actions: bell() })}
+    <div class="page">
+      <div class="stack-12" data-head>${searchbarHTML()}${whenHTML()}</div>
+      <div class="chip-scroll mt-12" data-intents>
+        <button class="chip" data-act="intent" data-i="quick">${icon("timer", 15)}Quick 1 hour</button>
+        <button class="chip" data-act="intent" data-i="day">${icon("sun", 15)}All day</button>
+        <button class="chip" data-act="intent" data-i="air">${icon("plane", 15)}Airport long-stay</button>
+        <button class="chip" data-act="intent" data-i="ev">${icon("zap", 15)}EV charging</button></div>
+      <div class="map-strip mt-16" data-strip></div>
+      <hr class="lane-sep">
+      <div class="sec" style="margin-top:24px"><div class="sec-head"><h2>Recommended near ${esc(c.name)}</h2><span class="small muted mono" data-n>${n}</span></div>
+        <div data-frow>${filterRowHTML()}</div>
+        <div data-skel="3" data-results>${resultsHTML()}</div>
+        <button class="btn btn-outline btn-md btn-block mt-16" data-act="save-search">${icon("bookmark-plus", 17)}Save this search</button></div>
+      ${viewed.length ? `<div class="sec"><div class="sec-head"><h2>Recently viewed</h2></div><div class="mini-row">${viewed.map((f) => { const r = measureOne(f); return `<a class="mini tap" data-go="/parking/${f.id}"><div class="illus-frame">${P.Illus.facility(f, "entrance")}</div><div class="mini-b"><b class="small ellipsis" style="display:block">${esc(f.name)}</b><div class="row-between mt-4"><span class="mono small">${P.money(r.total)}</span><span class="tiny ${r.free > 0 ? "t-ok" : "t-danger"}">${r.free > 0 ? r.free + " free" : "Full"}</span></div></div></a>`; }).join("")}</div></div>` : ""}
+      <div class="sec"><div class="sec-head"><h2>Your places</h2></div><div class="group">
+        ${st.savedPlaces.map((p) => { const d = P.destination(p.destId); return `<button class="grow-row" data-act="place" data-d="${d.id}"><span class="ri">${icon(p.label === "Home" ? "house" : "briefcase", 16)}</span><span class="lbl">${esc(p.label)}<small>${esc(d.name)}</small></span>${icon("chevron-right", 18, "chev")}</button>`; }).join("")}
+        ${st.recentDest.slice(0, 3).map((id) => P.destination(id)).filter(Boolean).map((d) => `<button class="grow-row" data-act="place" data-d="${d.id}"><span class="ri">${icon("clock", 16)}</span><span class="lbl">${esc(d.name)}<small>${esc(d.area)}</small></span>${icon("chevron-right", 18, "chev")}</button>`).join("")}
+      </div></div>
+    </div>`;
+  },
+  mount(el) {
+    const strip = $("[data-strip]", el);
+    const items = () => P.searchFacilities().results;
+    let map = P.SvgMap.render(strip, { items: items(), dest: P.searchCenter(S.state.search), radiusKm: S.state.search.filters.maxDistance || 3, compact: true, onOpen: () => nav.go("/map") });
+    let t = 0;
+    return {
+      destroy: () => { map.destroy(); clearTimeout(t); },
+      onState(st, why, prev) {
+        if (st.savedIds !== prev.savedIds || st.compareIds !== prev.compareIds) syncCards(el);
+        if (st.search !== prev.search || st.demo.seed !== prev.demo.seed || st.bookings !== prev.bookings || st.vehicles !== prev.vehicles || st.defaultVehicleId !== prev.defaultVehicleId) {
+          $("[data-head]", el).innerHTML = searchbarHTML() + whenHTML();
+          $("[data-frow]", el).innerHTML = filterRowHTML();
+          const box = $("[data-results]", el); box.innerHTML = skel(3);
+          clearTimeout(t);
+          t = setTimeout(() => {
+            box.innerHTML = `<div class="fade-swap">${resultsHTML()}</div>`; countUp(box);
+            const c = P.searchCenter(st.search); $("[data-n]", el).textContent = P.searchFacilities().results.length;
+            $(".sec-head h2", el).textContent = "Recommended near " + c.name;
+            map.update({ items: items(), dest: c, radiusKm: st.search.filters.maxDistance || 3 });
+          }, RM() ? 0 : 420);
+        }
+      },
+    };
+  },
+  acts: {
+    ...commonActs,
+    intent: (t) => {
+      const i = t.dataset.i, s = P.ceilHalfHour(P.now() + 15 * MIN);
+      if (i === "quick") A.setSearch({ start: s, end: s + HOUR, mode: "hourly" });
+      if (i === "day") { const d = P.at(P.dateKey(P.now() + (new Date(P.now()).getHours() >= 18 ? 24 * HOUR : 0)), "09:00").getTime(); const st = Math.max(d, s); A.setSearch({ start: st, end: st + 10 * HOUR, mode: "hourly" }); }
+      if (i === "air") { A.setDestination("t3"); A.setSearch({ start: s, end: s + 3 * 24 * HOUR, mode: "daily" }); }
+      if (i === "ev") A.setFilters({ ...S.state.search.filters, ev: true });
+      P.toast({ quick: "Showing 1-hour parking from now", day: "Showing all-day parking", air: "Airport long-stay, 3 days", ev: "Showing places with EV chargers" }[i], "info");
+    },
+    place: (t) => { A.setDestination(t.dataset.d); current.el.scrollTo({ top: 0, behavior: RM() ? "auto" : "smooth" }); },
+    "reset-f": () => A.resetFilters(),
+    "save-search": () => {
+      const c = P.searchCenter(S.state.search), w = W();
+      A.saveSearch(`${c.name} · ${fmt.dayLabel(w.s)} ${tl(w.s)}`, true);
+      P.toast("Search saved. We'll alert you when prices or spaces change.", "ok", { label: "View", onClick: () => nav.go("/saved", { tab: "searches" }) });
+    },
+  },
+};
+
+/* 3 · MAP */
+Screens.map = {
+  tab: true, fixed: true,
+  render() {
+    const w = W(), c = P.searchCenter(S.state.search);
+    return `<div class="mapfull" data-map></div>
+    <div class="map-top">
+      <div class="map-glass"><button class="map-q tap" data-act="dest">${icon("search", 18)}<span class="grow ellipsis"><b>${esc(c.name)}</b><small>${fmt.dayLabel(w.s)} · ${tl(w.s)} – ${tl(w.e)}</small></span></button>
+        <button class="map-when tap" data-act="when" aria-label="Change time">${icon("clock", 18)}</button></div>
+      <div class="filter-row" style="margin:10px 0 0;padding:0" data-frow>${filterRowHTML()}<button class="chip" data-go="/explore">${icon("list", 15)}List</button></div>
+    </div>
+    <div class="map-preview" data-preview hidden></div>`;
+  },
+  mount(el) {
+    let sel = null;
+    const items = () => P.searchFacilities().results;
+    const map = P.SvgMap.render($("[data-map]", el), { items: items(), dest: P.searchCenter(S.state.search), radiusKm: S.state.search.filters.maxDistance || 3,
+      onSelect: (id) => select(id),
+      onSearchArea: (c) => { A.setCustomDestination({ name: "This area", lat: c.lat, lng: c.lng }); P.toast("Searching this area", "info"); } });
+    $("[data-map]", el).addEventListener("click", (e) => { if (!e.target.closest(".pin,.map-ctrl,.map-search-area") && sel) select(null); });
+    function select(id) {
+      sel = id; const pv = $("[data-preview]", el);
+      map.update({ selectedId: id, routeTo: id ? P.facility(id) : undefined });
+      el.classList.toggle("has-preview", !!id);
+      if (!id) { pv.hidden = true; paintTray(true); return; }
+      const r = items().find((x) => x.f.id === id) || measureOne(P.facility(id)), f = r.f;
+      paintTray(false);
+      pv.hidden = false;
+      pv.innerHTML = `<div class="mp-card"><div class="row gap-12"><div class="thumb" style="width:84px;height:72px">${P.Illus.facility(f)}</div>
+        <div class="grow"><b class="h3 ellipsis" style="display:block">${esc(f.name)}</b><div class="rcard-meta"><span class="mono">${fmt.kmLabel(r.km)}</span>·<span>${r.walk} min walk</span>·${P.stars(f.rating)}</div>
+        <div class="row-between mt-8">${price(r.total, "mp-sm")}<span class="amen-row">${amen(f, 3)}</span></div></div></div>
+        <div class="mt-12">${P.occ(r.free, f.capacity, { cls: "occ-row" })}</div>
+        <div class="row gap-8 mt-12"><button class="btn btn-secondary btn-md" style="flex:1" data-go="/parking/${f.id}">Details</button><button class="btn btn-primary btn-md" style="flex:1.4" data-go="/reserve/${f.id}" ${r.free <= 0 ? "disabled" : ""}>${r.free <= 0 ? "Full for your time" : "Reserve"}</button></div></div>`;
+      pv.firstElementChild.classList.add("anim-rise");
+    }
+    paintTray(true);
+    M.mapSelect = select;
+    return {
+      destroy: () => map.destroy(),
+      onState(st, why, prev) {
+        if (st.compareIds !== prev.compareIds) paintTray(!sel);
+        if (st.search !== prev.search || st.demo.seed !== prev.demo.seed || st.bookings !== prev.bookings) {
+          const w = W(), c = P.searchCenter(st.search);
+          $(".map-q", el).innerHTML = `${icon("search", 18)}<span class="grow ellipsis"><b>${esc(c.name)}</b><small>${fmt.dayLabel(w.s)} · ${tl(w.s)} – ${tl(w.e)}</small></span>`;
+          $("[data-frow]", el).innerHTML = filterRowHTML() + `<button class="chip" data-go="/explore">${icon("list", 15)}List</button>`;
+          map.update({ items: items(), dest: c, radiusKm: st.search.filters.maxDistance || 3 });
+          if (sel) select(sel);
+        }
+      },
+    };
+  },
+  acts: { ...commonActs },
+};
+
+/* 5 · FACILITY DETAIL */
+Screens.parking = {
+  render(r) {
+    const f = P.facility(r.params.id); if (!f) return topbar({ title: "Not found" }) + empty("search-x", "Parking not found", "It may have been removed.");
+    const st = S.state, m = measureOne(f), w = W(), saved = st.savedIds.includes(f.id), vtp = vt();
+    const strip = [[3, "3 h"], [6, "6 h"], [12, "12 h"], [24, "1 day"]].map(([hrs, l]) => {
+      const q = P.quote({ facility: f, start: w.s, end: w.s + hrs * HOUR, mode: "hourly", vehicleType: vtp });
+      return `<div class="ps-cell"><div class="eyebrow">${l}</div><b class="mono">${P.money(q.total)}</b></div>`; }).join("");
+    const pol = D.policies[f.policy], dayStart = P.startOfDay(w.s);
+    const facts = [["Hours", P.hoursLabel(f)], ["Capacity", `${f.capacity} spaces`], ["Height limit", f.heightLimit ? f.heightLimit + " m" : "No limit"], ["Overnight", f.overnight ? "Allowed" : "Not allowed"], ["Accessible", f.accessible ? "Yes, step-free" : "No"], ["Vehicles", f.vehicleTypes.map((t) => D.vehicleLabels[t].replace("Electric vehicle", "EV")).join(", ")]];
+    return `${topbar({ title: f.name, overlay: true, actions: `<button class="glass-btn" data-act="save" data-id="${f.id}" aria-label="Save">${icon("heart", 19)}</button>` })}
+    <div class="dt-hero grain" data-hero>${P.Illus.facility(f)}</div>
+    <div class="dt-thumbs">${P.Illus.scenes.map((sc, i) => `<button class="dt-thumb tap ${sc === P.Illus.defaultScene(f) ? "is-on" : ""}" data-act="scene" data-s="${sc}" aria-label="Show ${sc}">${P.Illus.facility(f, sc)}</button>`).join("")}</div>
+    <div class="page" style="padding-top:16px">
+      <div class="chip-row">${P.badge(D.typeLabels[f.type], "neutral")}${f.instant ? P.badge("Instant booking", "lime", "zap") : P.badge("Operator confirms", "warn", "clock")}${f.ev ? P.badge(f.ev.count + " EV chargers", "info", "zap") : ""}</div>
+      <h1 class="h1 mt-12">${esc(f.name)}</h1>
+      <p class="small muted mt-4 selectable">${esc(f.address)}</p>
+      <div class="rcard-meta mt-8">${P.stars(f.rating, f.reviewCount)}·<span class="mono">${fmt.kmLabel(m.km)}</span>·<span>${icon("footprints", 12)} ${m.walk} min walk</span></div>
+      <div class="dt-acts mt-16">
+        <button class="dt-act tap ${saved ? "is-on" : ""}" data-act="save" data-id="${f.id}">${icon("heart", 20)}<span>${saved ? "Saved" : "Save"}</span></button>
+        <a class="dt-act tap" href="${esc(P.mapsUrl(f))}" target="_blank" rel="noopener">${icon("navigation", 20)}<span>Directions</span></a>
+        <button class="dt-act tap ${st.compareIds.includes(f.id) ? "is-on" : ""}" data-act="cmp" data-id="${f.id}">${icon("columns", 20)}<span>Compare</span></button>
+        <a class="dt-act tap" href="tel:${esc(f.phone.replace(/\s/g, ""))}">${icon("phone", 20)}<span>Call</span></a></div>
+      <div class="card card-pad mt-16"><div class="row-between"><div><div class="eyebrow">Your time</div><b class="mono small">${esc(fmt.windowLabel(w.s, w.e))}</b></div><button class="btn btn-secondary btn-sm" data-act="when">Change</button></div>
+        <div class="mt-12">${P.occ(m.free, f.capacity, { cls: "occ-row" })}</div></div>
+      <div class="sec"><div class="sec-head"><h2>Availability by hour</h2><span class="small muted">${esc(fmt.dayLabel(w.s))}</span></div>
+        <div class="heat" data-heat>${heatCells(f, dayStart, w.s)}</div>
+        <div class="legend mt-12"><span><i style="background:rgba(61,220,151,.4)"></i>Free</span><span><i style="background:rgba(255,176,32,.45)"></i>Few left</span><span><i style="background:rgba(255,90,95,.45)"></i>Full</span><span><i class="heat-cell h-closed" style="height:12px"></i>Closed</span></div>
+        <p class="tiny muted mt-8">Tap an hour to start your booking then.</p></div>
+      <div class="sec"><div class="sec-head"><h2>What it costs</h2><span class="small muted mono">₹${m.rate}/h${f.dailyRate ? ` · ₹${P.dailyFor(f, vtp)}/day` : ""}</span></div><div class="ps">${strip}</div>
+        <p class="tiny muted mt-8">Totals include the ₹15 fee and 18% GST, for your ${esc(D.vehicleLabels[vtp].toLowerCase())}.</p></div>
+      <div class="sec"><div class="sec-head"><h2>Good to know</h2></div><div class="kv-grid card card-pad">${facts.map(([k, v]) => `<div><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join("")}</div></div>
+      ${f.ev ? `<div class="sec"><div class="card card-pad ev-card"><div class="row gap-12"><span class="wl-ico">${icon("zap", 20)}</span><div class="grow"><b>EV charging</b><div class="small muted">${f.ev.count} chargers · ${f.ev.kw} kW · ${esc(f.ev.connector)}</div></div><b class="mono">₹${f.ev.perKwh}/kWh</b></div><p class="small ink-2 mt-12">Reserve a charger for ₹49 when you book. Energy is billed at the charger.</p></div></div>` : ""}
+      <div class="sec"><div class="sec-head"><h2>Security &amp; amenities</h2></div><div class="chip-row">${f.security.map((s) => `<span class="chip chip-sm">${icon("shield-check", 13)}${esc(D.securityLabels[s])}</span>`).join("")}${P.amenityIcons(f).filter((a) => !["CCTV", "Guarded"].includes(a.label)).map((a) => `<span class="chip chip-sm">${icon(a.icon, 13)}${esc(a.label)}</span>`).join("")}${f.amenities.map((a) => `<span class="chip chip-sm">${esc(a)}</span>`).join("")}</div></div>
+      <div class="sec"><div class="sec-head"><h2>Rules</h2></div><ol class="steps">${f.rules.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></div>
+      <div class="sec"><div class="sec-head"><h2>Cancellation</h2>${P.badge(pol.title, "neutral")}</div><div class="card card-pad"><ul class="pol">${pol.rules.map((x) => `<li>${icon("check", 15)}${esc(x)}</li>`).join("")}</ul><p class="tiny muted mt-8">The ₹18 convenience fee (incl. GST) is never refunded.</p></div></div>
+      <div class="sec"><div class="sec-head"><h2>Reviews</h2>${P.stars(f.rating, f.reviewCount)}</div><div class="mini-row">${f.reviews.map((rv) => `<div class="card card-pad rv"><div class="row-between"><b class="small">${esc(rv.name)}</b>${P.stars(rv.rating)}</div><p class="small ink-2 mt-8">${esc(rv.text)}</p><div class="tiny muted mt-8">${fmt.dateLabel(Date.parse(rv.date), {})}</div></div>`).join("")}</div></div>
+      <div class="sec"><div class="sec-head"><h2>Location</h2><span class="small muted">${m.walk} min walk to ${esc(P.searchCenter(st.search).name)}</span></div><div class="map-strip" style="height:180px" data-locmap></div></div>
+    </div>
+    <div class="actionbar"><div class="grow"><div class="tiny muted">${esc(durH(w.s, w.e))} total</div>${price(m.total, "mp-sm")}</div>
+      <button class="btn btn-primary btn-lg" data-go="/reserve/${f.id}" ${m.free <= 0 ? "disabled" : ""}>${m.free <= 0 ? "Full for your time" : "Reserve a spot"}</button></div>`;
+  },
+  mount(el, r) {
+    const f = P.facility(r.params.id); if (!f) return {};
+    A.viewed(f.id);
+    const lm = P.SvgMap.render($("[data-locmap]", el), { items: [measureOne(f)], dest: P.searchCenter(S.state.search), selectedId: f.id, routeTo: f, radiusKm: 0.8, compact: true, onOpen: () => window.open(P.mapsUrl(f), "_blank") });
+    const heart = () => { const on = S.state.savedIds.includes(f.id); $$("[data-act=save]", el).forEach((b) => { b.classList.toggle("is-on", on); const s = b.querySelector("span"); if (s) s.textContent = on ? "Saved" : "Save"; }); $(".topbar [data-act=save]", el).classList.toggle("heart-on", on); };
+    heart();
+    return { destroy: () => lm.destroy(),
+      onState(st, why, prev) {
+        if (st.savedIds !== prev.savedIds) heart();
+        if (st.compareIds !== prev.compareIds) $("[data-act=cmp]", el).classList.toggle("is-on", st.compareIds.includes(f.id));
+        if (st.search !== prev.search || st.demo.seed !== prev.demo.seed) rerender();
+      } };
+  },
+  acts: {
+    ...cardActs, when: () => timeSheet(),
+    scene: (t, el, r) => { const f = P.facility(r.params.id); $("[data-hero]", el).innerHTML = P.Illus.facility(f, t.dataset.s); $$(".dt-thumb", el).forEach((x) => x.classList.toggle("is-on", x === t)); },
+    hour: (t) => { const w = W(), s = +t.dataset.t; if (s < P.now() - MIN) return P.toast("That hour has passed. Pick a later one.", "warn"); A.setSearch({ start: s, end: s + (w.e - w.s) }); P.toast(`Entry set to ${tl(s)}`, "ok"); },
+  },
+};
+function heatCells(f, dayStart, selMs) {
+  const cells = P.hourlyAvailability(f, dayStart, S.state.bookings, S.state.demo.seed), selH = new Date(selMs).getHours(), nowMs = P.now();
+  return cells.map((c) => { const t = dayStart + c.hour * HOUR, past = t + HOUR <= nowMs;
+    return `<button class="heat-cell ${c.free < 0 ? "h-closed" : "h-" + P.availTone(c.free, f.capacity)} ${c.hour === selH ? "is-sel" : ""} ${past ? "is-past" : ""}" data-act="hour" data-t="${t}" aria-label="${fmt.time12(String(c.hour).padStart(2, "0") + ":00")}: ${c.free < 0 ? "closed" : c.free + " free"}">${String(c.hour).padStart(2, "0")}<span class="n">${c.free < 0 ? "–" : c.free}</span></button>`; }).join("");
+}
+
+/* 6 · RESERVE */
+const reserveDraft = {}; // per facility, survives re-render
+Screens.reserve = {
+  render(r) {
+    const f = P.facility(r.params.id), w = W();
+    const d = (reserveDraft[f.id] = reserveDraft[f.id] || { start: w.s, dur: Math.round((w.e - w.s) / MIN), mode: w.mode === "daily" && f.dailyRate ? "daily" : "hourly", vehicleId: P.defaultVehicle().id, reqs: [], note: "" });
+    if (d.mode === "daily") d.dur = Math.max(1440, Math.round(d.dur / 1440) * 1440);
+    const days = dayItems(14);
+    return `${topbar({ title: "Reserve", sub: f.name, large: true, eyebrow: esc(f.name) })}
+    <div class="page">
+      <div class="step"><span class="step-n">1</span><h2>Date &amp; time</h2></div>
+      ${f.dailyRate ? `<div class="seg seg-block mb-12" data-mode><button class="${d.mode === "hourly" ? "is-on" : ""}" data-m="hourly">By the hour</button><button class="${d.mode === "daily" ? "is-on" : ""}" data-m="daily">By the day</button></div>` : ""}
+      <div class="datestrip mb-12" data-days>${days.map((x, i) => { const ms = P.at(x.v, "12:00").getTime(); return `<button class="${x.v === P.dateKey(d.start) ? "is-on" : ""}" data-dk="${x.v}"><small>${i === 0 ? "Today" : new Date(ms).toLocaleDateString("en-IN", { weekday: "short" })}</small><b>${new Date(ms).getDate()}</b></button>`; }).join("")}</div>
+      <div class="group-label">Enter after</div><div data-twheel></div>
+      <div class="group-label mt-24">${d.mode === "daily" ? "Number of days" : "How long — drag the dial"}</div>
+      <div class="dial" data-dial style="width:236px"></div>
+      <div data-issues class="stack-8 mt-12"></div>
+      <hr class="lane-sep">
+      <div class="step mt-24"><span class="step-n">2</span><h2>Vehicle</h2></div>
+      <div class="stack-8" data-vehicles></div>
+      <button class="btn btn-ghost btn-md mt-8" data-act="add-vehicle">${icon("plus", 17)}Add a vehicle</button>
+      <hr class="lane-sep">
+      <div class="step mt-24"><span class="step-n">3</span><h2>Anything you need?</h2></div>
+      <div class="chip-row" data-reqs>${D.requirements.filter((q) => q !== "EV charging" || f.ev).map((q) => `<button class="chip ${d.reqs.includes(q) ? "is-on" : ""}" data-q="${esc(q)}">${q === "EV charging" ? icon("zap", 14) + "EV charging +₹49" : esc(q)}</button>`).join("")}</div>
+      <div class="field mt-16"><label class="field-label" for="rnote">Note for the attendant</label><textarea id="rnote" class="textarea" maxlength="160" placeholder="E.g. I'll arrive with a wheelchair user" data-note>${esc(d.note)}</textarea><div class="field-hint right"><span data-cnt>${d.note.length}</span>/160</div></div>
+      <div class="sec"><div class="sec-head"><h2>Summary</h2></div><div class="card card-pad" data-summary></div></div>
+    </div>
+    <div class="actionbar"><div class="grow"><div class="tiny muted" data-dur></div>${price(0, "mp-sm")}</div><button class="btn btn-primary btn-lg" data-act="continue">Continue</button></div>`;
+  },
+  mount(el, r) {
+    const f = P.facility(r.params.id), d = reserveDraft[f.id];
+    let dial, tw, lastIssues = [];
+    const startMs = () => d.start, endMs = () => d.start + d.dur * MIN;
+    function vehicles() {
+      $("[data-vehicles]", el).innerHTML = S.state.vehicles.map((v) => { const okT = f.vehicleTypes.includes(v.type);
+        return `<label class="opt ${okT ? "" : "is-disabled"}"><input type="radio" name="veh" value="${v.id}" ${v.id === d.vehicleId ? "checked" : ""} ${okT ? "" : "disabled"}><span class="opt-mark"></span>
+          <span class="grow"><b class="small" style="display:block">${esc(v.name)}</b><span class="tiny muted">${esc(D.vehicleLabels[v.type])}${v.color ? " · " + esc(v.color) : ""}</span></span>${okT ? P.plate(v.plate, "sm") : P.badge("Not allowed", "danger")}</label>`; }).join("");
+    }
+    function paint() {
+      const v = S.state.vehicles.find((x) => x.id === d.vehicleId);
+      const chk = P.validateBooking({ facility: f, start: startMs(), end: endMs(), mode: d.mode, vehicle: v, bookings: S.state.bookings, seed: S.state.demo.seed });
+      const q = P.quote({ facility: f, start: startMs(), end: endMs(), mode: d.mode, vehicleType: v ? v.type : "hatchback", evCharging: d.reqs.includes("EV charging") });
+      lastIssues = chk.issues;
+      $("[data-issues]", el).innerHTML = chk.issues.map((i) => `<div class="notice notice-${i.field === "availability" ? "danger" : "warn"}">${icon("triangle-alert", 16)}<span>${esc(i.message)}</span></div>`).join("");
+      $("[data-summary]", el).innerHTML = `<div class="row gap-12 mb-12"><div class="thumb" style="width:56px;height:48px">${P.Illus.facility(f)}</div><div class="grow"><b class="small">${esc(f.name)}</b><div class="tiny muted mono">${esc(fmt.windowLabel(startMs(), endMs()))}</div></div></div>
+        ${P.occ(chk.free, f.capacity, { cls: "occ-row" })}<div class="mt-12">${P.bill(q)}</div>`;
+      $("[data-dur]", el).textContent = fmt.durationLabel(d.dur / 60) + (v ? " · " + v.plate : "");
+      setPrice(el.querySelector(".actionbar"), q.total);
+      const btn = $("[data-act=continue]", el); btn.disabled = chk.issues.length > 0 || !v; btn.textContent = chk.issues.length ? "Fix the issue above" : "Continue";
+    }
+    function mountDial() {
+      dial && dial.destroy();
+      dial = P.Dial.mount($("[data-dial]", el), d.mode === "hourly"
+        ? { valueMin: Math.min(d.dur, 1440), minMin: 30, maxMin: 1440, stepMin: 30, startMs: startMs(), onChange: (x) => { d.dur = x; paint(); } }
+        : { valueMin: d.dur, minMin: 1440, maxMin: 10080, stepMin: 1440, label: "Days", startMs: startMs(), onChange: (x) => { d.dur = x; paint(); } });
+    }
+    function mountWheel() {
+      const dk = P.dateKey(d.start);
+      tw = wheel($("[data-twheel]", el), [{ items: timeItems(dk), value: P.timeKey(P.ceilHalfHour(d.start - 1)), wide: true, label: "Entry time" }], ([tk]) => { d.start = P.at(dk, tk).getTime(); dial.update({ startMs: startMs() }); paint(); });
+    }
+    $("[data-days]", el).addEventListener("click", (e) => { const b = e.target.closest("[data-dk]"); if (!b) return;
+      $$("[data-dk]", el).forEach((x) => x.classList.toggle("is-on", x === b));
+      d.start = P.at(b.dataset.dk, P.timeKey(d.start)).getTime(); mountWheel(); dial.update({ startMs: startMs() }); paint(); });
+    const modeEl = $("[data-mode]", el);
+    modeEl && modeEl.addEventListener("click", (e) => { const b = e.target.closest("[data-m]"); if (!b) return; segSet(modeEl, b); d.mode = b.dataset.m; d.dur = d.mode === "daily" ? 1440 : 120;
+      $$(".group-label", el)[1].textContent = d.mode === "daily" ? "Number of days" : "How long — drag the dial"; mountDial(); paint(); });
+    $("[data-vehicles]", el).addEventListener("change", (e) => { if (e.target.name === "veh") { d.vehicleId = e.target.value; paint(); } });
+    $("[data-reqs]", el).addEventListener("click", (e) => { const b = e.target.closest("[data-q]"); if (!b) return; const q = b.dataset.q;
+      d.reqs = d.reqs.includes(q) ? d.reqs.filter((x) => x !== q) : [...d.reqs, q]; b.classList.toggle("is-on"); paint(); });
+    $("[data-note]", el).addEventListener("input", (e) => { d.note = e.target.value; $("[data-cnt]", el).textContent = d.note.length; });
+    vehicles(); mountWheel(); mountDial(); paint();
+    // pick a vehicle that is allowed here and free for this time (only on first visit)
+    if (!d.picked) {
+      d.picked = true;
+      const cur = S.state.vehicles.find((x) => x.id === d.vehicleId), okV = P.pickVehicle(f, startMs(), endMs(), d.mode);
+      if (okV && cur && okV.id !== cur.id) { d.vehicleId = okV.id; vehicles(); paint(); P.toast(`Your ${cur.name} is already booked then, so we picked the ${okV.name}`, "info"); }
+    }
+    M.reserve = { d, paint };
+    return { destroy: () => dial && dial.destroy(), onState(st, why, prev) { if (st.vehicles !== prev.vehicles) { vehicles(); paint(); } if (st.bookings !== prev.bookings || st.demo !== prev.demo) paint(); } };
+  },
+  acts: {
+    "add-vehicle": (t, el, r) => vehicleSheet(null, (v) => { reserveDraft[r.params.id].vehicleId = v.id; }),
+    continue: (t, el, r) => {
+      const d = reserveDraft[r.params.id];
+      A.setSearch({ start: d.start, end: d.start + d.dur * MIN, mode: d.mode });
+      nav.go("/checkout/" + r.params.id, { s: d.start, e: d.start + d.dur * MIN, m: d.mode, v: d.vehicleId, req: d.reqs.join("|"), note: d.note });
+    },
+  },
+};
+
+/* 7 · CHECKOUT */
+const checkoutDraft = { promo: "", method: null };
+function draftFromQuery(r) {
+  const q = r.query, f = P.facility(r.params.id), w = W();
+  const start = +q.s || w.s, end = +q.e || w.e, mode = q.m || "hourly";
+  const v = S.state.vehicles.find((x) => x.id === q.v) || P.defaultVehicle();
+  const reqs = (q.req || "").split("|").filter(Boolean);
+  return { f, start, end, mode, v, reqs, note: q.note || "" };
+}
+Screens.checkout = {
+  render(r) {
+    const d = draftFromQuery(r), f = d.f, method = checkoutDraft.method || S.state.prefs.payment || "upi";
+    const pol = D.policies[f.policy];
+    const row = (ic, k, v) => `<div class="review-row">${icon(ic, 18)}<div class="grow"><div class="k">${k}</div><div class="v">${v}</div></div></div>`;
+    return `${topbar({ title: "Checkout", large: true, eyebrow: "Review and pay" })}
+    <div class="page">
+      <div class="card card-pad">
+        <div class="row gap-12 mb-16"><div class="thumb" style="width:72px;height:58px">${P.Illus.facility(f, "entrance")}</div><div class="grow"><b class="h3">${esc(f.name)}</b><div class="small muted">${esc(f.area)}</div></div><button class="btn btn-ghost btn-sm" data-back>Edit</button></div>
+        ${row("calendar-clock", "When", `<span class="mono small">${esc(fmt.windowLabel(d.start, d.end))}</span>`)}
+        ${row("timer", "Duration", esc(d.mode === "daily" ? Math.ceil((d.end - d.start) / 864e5) + " day(s), daily rate" : durH(d.start, d.end)))}
+        ${row("car", "Vehicle", `${esc(d.v.name)} &nbsp;${P.plate(d.v.plate, "sm")}`)}
+        ${d.reqs.length ? row("sparkles", "Requests", esc(d.reqs.join(", "))) : ""}
+        ${d.note ? row("file-text", "Note", esc(d.note)) : ""}
+        ${row("shield-check", "Cancellation", `${esc(pol.title)}: ${esc(pol.rules[0].toLowerCase())}`)}
+      </div>
+      <div class="sec" style="margin-top:28px"><div class="group-label">Promo code</div>
+        <div class="promo"><input class="input" data-promo placeholder="Enter a code" value="${esc(checkoutDraft.promo)}" maxlength="12" autocapitalize="characters" aria-label="Promo code"><button class="btn btn-secondary btn-md" data-act="promo">Apply</button></div>
+        <div class="mt-8" data-promo-msg></div>
+        <div class="chip-row mt-8">${Object.keys(D.promos).map((c) => `<button class="chip chip-sm" data-act="promo-pick" data-c="${c}">${c}</button>`).join("")}</div></div>
+      <div class="sec" style="margin-top:28px"><div class="group-label">Pay with</div><div class="stack-8" data-methods>
+        ${D.paymentMethods.map((m) => `<label class="opt"><input type="radio" name="pay" value="${m.id}" ${m.id === method ? "checked" : ""}><span class="pay-ico">${icon({ upi: "smartphone", card: "credit-card", wallet: "wallet" }[m.id], 19)}</span><span class="grow"><b class="small" style="display:block">${esc(m.label)}</b><span class="tiny muted mono">${esc(m.detail)}</span></span><span class="opt-mark"></span></label>`).join("")}</div></div>
+      <div class="sec" style="margin-top:28px"><div class="group-label">Bill</div><div class="card card-pad" data-bill></div>
+        <p class="tiny muted mt-8 center">${icon("lock", 12)} Payment is simulated in this prototype. No money moves.</p></div>
+    </div>
+    <div class="actionbar"><button class="btn btn-primary btn-lg btn-block" data-act="pay"></button></div>`;
+  },
+  mount(el, r) {
+    const d = draftFromQuery(r);
+    let applied = checkoutDraft.promo && P.applyPromo(checkoutDraft.promo, 1e4, d.start).ok ? checkoutDraft.promo : "";
+    const q = () => P.quote({ facility: d.f, start: d.start, end: d.end, mode: d.mode, vehicleType: d.v.type, evCharging: d.reqs.includes("EV charging"), promo: applied });
+    function paint() {
+      const qq = q(); $("[data-bill]", el).innerHTML = P.bill(qq, { totalLabel: "You pay" });
+      $("[data-act=pay]", el).innerHTML = `${icon("lock", 17)}Pay ${P.money(qq.total)} and reserve`;
+      return qq;
+    }
+    function applyCode(code) {
+      const base = P.quote({ facility: d.f, start: d.start, end: d.end, mode: d.mode, vehicleType: d.v.type });
+      const res = P.applyPromo(code, base.subtotal, d.start);
+      $("[data-promo-msg]", el).innerHTML = code ? `<div class="field-${res.ok ? "hint t-ok" : "error"}" style="display:flex;gap:6px">${icon(res.ok ? "circle-check" : "info", 14)}<span>${esc(res.message)}</span></div>` : "";
+      applied = res.ok ? code.toUpperCase() : ""; checkoutDraft.promo = applied;
+      const before = $("[data-bill] .bill-total .bill-amt", el), old = before && before.textContent;
+      paint();
+      const now = $("[data-bill] .bill-total .bill-amt", el); if (old && now) { const n = now.textContent; now.textContent = old; P.rollNumber(now, n); }
+    }
+    $("[data-methods]", el).addEventListener("change", (e) => { checkoutDraft.method = e.target.value; });
+    $("[data-promo]", el).addEventListener("keydown", (e) => { if (e.key === "Enter") applyCode(e.target.value.trim()); });
+    M.checkout = { applyCode };
+    paint(); if (applied) applyCode(applied);
+    return { applyCode, d, q };
+  },
+  acts: {
+    promo: (t, el) => current.ctl.applyCode($("[data-promo]", el).value.trim()),
+    "promo-pick": (t, el) => { $("[data-promo]", el).value = t.dataset.c; current.ctl.applyCode(t.dataset.c); },
+    pay: async (t, el, r) => {
+      const { d } = current.ctl, method = ($("input[name=pay]:checked", el) || {}).value || "upi";
+      const proc = h(`<div class="processing" role="alertdialog" aria-label="Processing payment"><div class="spinner"></div><b class="h3">Paying ${P.money(current.ctl.q().total)}</b><p class="small">Holding your space at ${esc(d.f.name)}…</p></div>`);
+      device.appendChild(proc);
+      await wait(1400);
+      proc.remove();
+      if (S.state.demo.nextPaymentFails) {
+        A.setDemo({ nextPaymentFails: false });
+        const s = sheet({ title: "Payment didn't go through", body: `<div class="center stack-12"><div class="empty-ico" style="margin:8px auto;color:var(--danger)">${icon("circle-x", 30)}</div><p class="ink-2">Your bank declined the payment. Nothing was charged and no space was booked.</p><p class="small muted">Try again, or pick another way to pay.</p></div>`,
+          footer: `<button class="btn btn-secondary btn-lg" data-change>Change method</button><button class="btn btn-primary btn-lg" data-retry>Try again</button>` });
+        s.footer.querySelector("[data-retry]").onclick = () => { s.close(); setTimeout(() => $("[data-act=pay]", el).click(), 250); };
+        s.footer.querySelector("[data-change]").onclick = () => { s.close(); $("[data-methods]", el).scrollIntoView({ behavior: "smooth", block: "center" }); };
+        return;
+      }
+      const res = A.createBooking({ facilityId: d.f.id, vehicleId: d.v.id, start: d.start, end: d.end, mode: d.mode, requirements: d.reqs, notes: d.note, promo: checkoutDraft.promo, method });
+      if (!res.ok) { P.toast(res.error, "danger"); return; }
+      checkoutDraft.promo = ""; delete reserveDraft[d.f.id];
+      nav.reset(["/bookings"], "/confirmation/" + res.value.id, "push");
+    },
+  },
+};
+
+/* boarding pass */
+function passHTML(b, o = {}) {
+  const f = P.facility(b.facilityId), drive = f.type === "driveway", parts = b.bay.split("·").map((x) => x.trim());
+  const bay = parts.length > 1 ? parts[1].replace(/^Bay\s*/, "") : parts[0], lvl = parts.length > 1 ? parts[0] : f.levels[0];
+  const st = P.bookingStatus(b), stepI = b.exitedAt ? 3 : b.arrivedAt ? 2 : st === "active" ? 1 : 0;
+  const gate = String(1000 + Math.floor(P.hash(b.ref) * 8999));
+  return `<article class="pass m-pass ${o.print ? "is-printing" : ""}">
+    <div class="pass-top grain"><div class="pass-head"><span class="pass-brand">PARKLY PASS</span>${P.statusBadge(b)}</div>
+      <div class="row-between" style="align-items:flex-end"><div class="pass-bay ${bay.length > 4 ? "is-word" : ""}"><small>${drive ? "Space" : "Bay"}</small>${esc(bay)}</div>
+        <svg class="barrier ${b.arrivedAt ? "is-up" : ""}" width="64" height="40" viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="16" width="8" height="24" rx="2" fill="#3A4741"/><g class="barrier-arm"><rect x="6" y="17" width="56" height="5" rx="2.5" fill="#F5F4EF"/><rect x="18" y="17" width="8" height="5" fill="#FF5A5F"/><rect x="38" y="17" width="8" height="5" fill="#FF5A5F"/></g></svg></div>
+      <div class="small ink-2 mt-8">${esc(f.name)}${lvl !== bay ? " · " + esc(lvl) : ""}</div>
+      <div class="pass-grid"><div class="pass-cell"><div class="eyebrow">Entry</div><div class="v">${tl(b.start)}</div><div class="tiny muted">${esc(fmt.dayLabel(b.start))}</div></div>
+        <div class="pass-cell"><div class="eyebrow">Exit by</div><div class="v">${tl(b.end)}</div><div class="tiny muted">${esc(fmt.dayLabel(b.end))}</div></div>
+        <div class="pass-cell"><div class="eyebrow">Vehicle</div><div class="v">${P.plate(b.vehicle.plate, "sm")}</div></div>
+        <div class="pass-cell"><div class="eyebrow">${drive ? "Gate code" : "Ref"}</div><div class="v selectable">${drive ? gate : esc(b.ref)}</div></div></div>
+      <div class="pass-rail">${["Drive", "Enter", "Park", "Exit"].map((s, i) => `<span class="${i === stepI ? "is-on" : i < stepI ? "is-done" : ""}">${s}</span>`).join("")}</div></div>
+    <div class="pass-tear"><svg class="perf" preserveAspectRatio="none" viewBox="0 0 100 2" aria-hidden="true"><line x1="0" y1="1" x2="100" y2="1"/></svg></div>
+    <div class="pass-bottom pass-qr"><div class="qr-wrap">${P.QR.svg(`PARKLY|${b.ref}|${b.vehicle.plate}`)}<i class="scan"></i></div>
+      <div><div class="h3">Scan at entry</div><div class="small muted mt-4">Hold the code under the reader at the boom barrier.${drive ? " Or type the gate code." : ""}</div><div class="mono tiny muted mt-8">${esc(b.ref)}</div></div></div>
+  </article>`;
+}
+
+/* 8 · CONFIRMATION */
+Screens.confirmation = {
+  render(r) {
+    const b = P.getBooking(r.params.id); if (!b) return topbar({ title: "Booking" }) + empty("search-x", "Booking not found", "It may have been removed.");
+    const f = P.facility(b.facilityId), pending = P.bookingStatus(b) === "pending";
+    return `${topbar({ title: pending ? "Booking received" : "You're booked", back: false, actions: `<button class="btn btn-ghost btn-sm" data-act="done">Done</button>` })}
+    <div class="page center-col">
+      <div class="check-badge ${pending ? "is-pend" : ""}" style="margin:8px auto 0">${icon(pending ? "clock" : "check", 36)}</div>
+      <h1 class="h1 center mt-16">${pending ? "Booking received" : "You're booked"}</h1>
+      <p class="small muted center mt-4">${pending ? `${esc(f.name)} confirms private spaces by hand. We'll tell you within a minute.` : `Your space at ${esc(f.name)} is held for you.`}</p>
+      <div class="pass-slot mt-24">${passHTML(b, { print: true })}</div>
+      <div class="card card-pad mt-24"><div class="row-between"><span class="small muted">Paid via ${esc((D.paymentMethods.find((m) => m.id === b.payment.method) || { label: b.payment.method }).label)}</span><b class="mono">${P.money(b.payment.amount)}</b></div>
+        ${b.price.discount ? `<div class="tiny t-ok mt-4">You saved ${P.money(b.price.discount)} with ${esc(b.price.promo)}</div>` : ""}</div>
+      <div class="sec" style="margin-top:28px"><div class="sec-head"><h2>When you get there</h2></div><ol class="steps">${f.entry.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></div>
+      <div class="stack-8 mt-24">
+        <button class="btn btn-primary btn-lg btn-block" data-act="view">View booking</button>
+        <div class="row gap-8"><a class="btn btn-secondary btn-md" style="flex:1" href="${esc(P.mapsUrl(f))}" target="_blank" rel="noopener">${icon("navigation", 17)}Directions</a><button class="btn btn-secondary btn-md" style="flex:1" data-act="cal">${icon("calendar-plus", 17)}Calendar</button></div>
+        <button class="btn btn-ghost btn-md btn-block" data-act="done">Back to Explore</button></div>
+    </div>`;
+  },
+  mount(el, r) { return { onState(st, why, prev) { const b = P.getBooking(r.params.id); const pb = prev.bookings.find((x) => x.id === r.params.id); if (b && pb && P.bookingStatus(b) !== "pending" && $(".check-badge.is-pend", el)) rerender(); } , tick() { const b = P.getBooking(r.params.id); if (b && $(".check-badge.is-pend", el) && P.bookingStatus(b) !== "pending") { rerender(); P.toast("The operator confirmed your booking", "ok"); } } }; },
+  acts: {
+    view: (t, el, r) => nav.reset(["/bookings"], "/bookings/" + r.params.id, "push"),
+    done: () => nav.reset([], "/explore", "pop"),
+    cal: (t, el, r) => calendarSheet(P.getBooking(r.params.id)),
+  },
+};
+
+/* 9 · BOOKINGS */
+const BTABS = [["upcoming", "Upcoming"], ["active", "Active"], ["completed", "Completed"], ["cancelled", "Cancelled"]];
+const groupOf = (b) => { const s = P.bookingStatus(b); return s === "pending" ? "upcoming" : s; };
+let bookTab = null;
+function bcard(b) {
+  const f = P.facility(b.facilityId), st = P.bookingStatus(b), over = P.isOverstay(b);
+  return `<a class="bcard tap ${st === "active" ? "is-live" : ""} ${over ? "is-over" : ""}" data-go="/bookings/${b.id}">
+    <div class="bcard-top"><div class="thumb">${P.Illus.facility(f)}</div><div class="grow"><div class="row-between"><b class="small ellipsis">${esc(f.name)}</b>${P.statusBadge(b)}</div>
+      <div class="tiny muted mono mt-4">${esc(fmt.windowLabel(b.start, b.end))}</div><div class="tiny ink-2 mt-4">${esc(b.bay)}</div></div></div>
+    <div class="bcard-bot"><span class="mono tiny muted">${esc(b.ref)}</span>${P.plate(b.vehicle.plate, "sm")}<b class="mono small">${P.money(P.paidSoFar(b))}</b></div></a>`;
+}
+Screens.bookings = {
+  tab: true, ptr: true,
+  render(r) {
+    const all = S.state.bookings, counts = Object.fromEntries(BTABS.map(([k]) => [k, all.filter((b) => groupOf(b) === k).length]));
+    const tab = r.query.tab || bookTab || (counts.active ? "active" : "upcoming"); bookTab = tab;
+    const list = all.filter((b) => groupOf(b) === tab).sort((a, b) => (tab === "upcoming" || tab === "active" ? 1 : -1) * (Date.parse(a.start) - Date.parse(b.start)));
+    return `${topbar({ title: "Bookings", large: true, back: false, actions: bell() })}
+    <div class="tabs chip-scroll" role="tablist" data-btabs>${BTABS.map(([k, l]) => `<button class="${k === tab ? "is-on" : ""}" data-act="btab" data-k="${k}" role="tab" aria-selected="${k === tab}">${l}<span class="count">${counts[k]}</span></button>`).join("")}</div>
+    <div class="page" style="padding-top:16px"><div class="stack-12 m-stagger" data-skel="3">${list.length ? list.map(bcard).join("") + `<p class="tiny muted center mt-16">${icon("refresh-cw", 12)} Pull down to refresh live status</p>` : empty("calendar-days", `No ${tab} bookings`, tab === "upcoming" ? "Find a spot and reserve it before you leave home." : "They will show up here.", tab === "upcoming" ? `<button class="btn btn-primary btn-md" data-tab="/explore">Find parking</button>` : "")}</div></div>`;
+  },
+  mount(el) { return { tick() { $$(".bcard", el).length && null; } }; },
+  live: true,
+  acts: { btab: (t) => { bookTab = t.dataset.k; rerender(false); } },
+};
+
+/* 10 · BOOKING DETAIL */
+function heroState(b) {
+  const f = P.facility(b.facilityId), st = P.bookingStatus(b), n = P.now(), s = Date.parse(b.start), e = Date.parse(b.end);
+  if (P.isOverstay(b)) {
+    const ex = A.exitPreview(b.id);
+    return `<div class="hero-st is-danger"><div class="row-between"><span class="eyebrow" style="color:var(--danger)">Overstay</span><span class="live-dot" style="background:var(--danger)"></span></div>
+      <div class="cd-big t-danger mt-12" data-cd="over">+${fmt.countdown(ex.overMs)}</div><p class="small ink-2 mt-8">You were due out at ${tl(e)}. Overstay costs 1.5× the hourly rate after a 15-min grace.</p>
+      <div class="row-between mt-16"><span class="small muted">Fee so far</span><b class="mono t-danger" data-fee>${P.money(ex.fee)}</b></div>
+      <div class="act-pair"><button class="btn btn-primary btn-md" data-act="extend">Extend now</button><button class="btn btn-danger btn-md" data-act="exit">I've exited</button></div></div>`;
+  }
+  if (st === "active") {
+    const left = e - n, frac = left / (e - s), tone = left < 15 * MIN ? "warn" : "lime";
+    return `<div class="hero-st ${tone === "warn" ? "is-warn" : ""}"><div class="ring-wrap">${P.ring(frac, { size: 132, stroke: 10, tone, html: `<div class="eyebrow">Time left</div><div class="ring-time" data-cd="left">${fmt.countdown(left)}</div>` })}
+      <div class="grow"><span class="eyebrow ${tone === "warn" ? "" : "is-lime"}" ${tone === "warn" ? 'style="color:var(--warn)"' : ""}>${b.arrivedAt ? "Parked" : "Active now"}</span><div class="h2 mt-4">${esc(b.bay)}</div>
+        <div class="small muted mt-4">Exit by <b class="mono ink-2">${tl(e)}</b></div><div class="occ mt-12"><div class="occ-track"><div class="occ-fill" style="width:${Math.round((1 - frac) * 100)}%;background:var(--lime)"></div></div><div class="occ-label">${Math.round((1 - frac) * 100)}% used</div></div></div></div>
+      ${tone === "warn" ? `<div class="notice notice-warn mt-16">${icon("triangle-alert", 16)}<span>Ends soon. Extend now to avoid overstay charges.</span></div>` : ""}
+      <div class="act-pair">${b.arrivedAt ? `<button class="btn btn-primary btn-md" data-act="extend">${icon("plus", 17)}Extend</button><button class="btn btn-secondary btn-md" data-act="exit">I've exited</button>` : `<button class="btn btn-primary btn-md" data-go="/bookings/${b.id}/arrive">I'm arriving</button><button class="btn btn-secondary btn-md" data-act="pass">View pass</button>`}</div></div>`;
+  }
+  if (st === "pending") return `<div class="hero-st is-warn"><span class="eyebrow" style="color:var(--warn)">Operator confirming</span><div class="h2 mt-8">Waiting for ${esc(f.name)}</div><p class="small ink-2 mt-8">Private spaces are confirmed by hand, usually within a minute. If they say no, you get a full refund.</p><div class="row gap-8 mt-12"><span class="spinner" style="width:20px;height:20px;border-width:3px"></span><span class="small muted">Checking…</span></div></div>`;
+  if (st === "upcoming") return `<div class="hero-st"><span class="eyebrow is-lime">Starts in</span><div class="cd-big mt-8" data-cd="start">${fmt.countdown(s - n)}</div><p class="small ink-2 mt-8">${esc(fmt.dayLabel(s))} at ${tl(s)} · ${esc(b.bay)}</p>
+      <div class="act-pair"><button class="btn btn-primary btn-md" data-go="/bookings/${b.id}/arrive">I'm arriving</button><button class="btn btn-secondary btn-md" data-act="pass">View pass</button></div></div>`;
+  if (st === "cancelled") return `<div class="hero-st is-muted"><span class="eyebrow" style="color:var(--danger)">Cancelled</span><div class="h2 mt-8">${b.refund && b.refund.amount ? `${P.money(b.refund.amount)} refunded` : "No refund"}</div><p class="small muted mt-8">${esc((b.refund && b.refund.note) || "The space was released.")}</p><button class="btn btn-primary btn-md btn-block mt-16" data-act="again">Book again</button></div>`;
+  return `<div class="hero-st is-muted"><span class="eyebrow">Completed</span><div class="h2 mt-8">Thanks for parking with us</div><p class="small muted mt-8">${b.exitedAt ? `Exited ${esc(fmt.dayLabel(Date.parse(b.exitedAt)))} at ${tl(Date.parse(b.exitedAt))}.` : "This booking has ended."}</p><button class="btn btn-primary btn-md btn-block mt-16" data-act="again">Book again</button></div>`;
+}
+Screens.booking = {
+  render(r) {
+    const b = P.getBooking(r.params.id); if (!b) return topbar({ title: "Booking" }) + empty("search-x", "Booking not found", "It may have been removed.");
+    const f = P.facility(b.facilityId), st = P.bookingStatus(b), live = ["upcoming", "pending", "active"].includes(st), up = st === "upcoming" || st === "pending";
+    const li = (act, ic, label, sub = "", cls = "") => `<button class="list-row ${cls}" data-act="${act}"><span class="ico-wrap">${icon(ic, 18)}</span><span class="grow">${label}${sub ? `<div class="tiny muted">${sub}</div>` : ""}</span>${icon("chevron-right", 18, "chev")}</button>`;
+    return `${topbar({ title: f.name, sub: b.ref, large: true, eyebrow: `<span class="mono">${esc(b.ref)}</span>`, actions: P.statusBadge(b) + "&nbsp;&nbsp;" })}
+    <div class="page">
+      <div data-hero>${heroState(b)}</div>
+      <div class="card card-pad mt-16"><div class="row gap-12 mb-12"><div class="thumb" style="width:60px;height:50px">${P.Illus.facility(f)}</div><div class="grow"><b>${esc(f.name)}</b><div class="tiny muted">${esc(f.address)}</div></div></div>
+        <dl class="kv"><div><dt>When</dt><dd class="mono">${esc(fmt.windowLabel(b.start, b.end))}</dd></div><div><dt>Space</dt><dd class="mono">${esc(b.bay)}</dd></div><div><dt>Vehicle</dt><dd>${P.plate(b.vehicle.plate, "sm")}</dd></div>
+        ${b.requirements.length ? `<div><dt>Requests</dt><dd>${esc(b.requirements.join(", "))}</dd></div>` : ""}<div><dt>Paid</dt><dd class="mono">${P.money(P.paidSoFar(b))}</dd></div></dl></div>
+      <div class="sec" style="margin-top:28px"><div class="act-list">
+        ${st !== "cancelled" ? li("pass", "qr-code", "View pass", "Show at the barrier") : ""}
+        <a class="list-row" href="${esc(P.mapsUrl(f))}" target="_blank" rel="noopener"><span class="ico-wrap">${icon("navigation", 18)}</span><span class="grow">Directions</span>${icon("arrow-up-right", 16, "chev")}</a>
+        ${up ? li("modify", "pencil", "Change time or vehicle", "See the price difference first") : ""}
+        ${st === "active" ? li("extend", "plus", "Extend parking", "Add 30 min to 3 h") : ""}
+        ${live ? li("cal", "calendar-plus", "Add to calendar") : ""}
+        <a class="list-row" href="tel:${esc(f.phone.replace(/\s/g, ""))}"><span class="ico-wrap">${icon("phone", 18)}</span><span class="grow">Call the facility<div class="tiny muted mono">${esc(f.phone)}</div></span>${icon("chevron-right", 18, "chev")}</a>
+        ${li("pay", "receipt", "Payment summary")}
+        ${li("again", "rotate-ccw", "Book again")}
+        ${up ? li("cancel", "circle-x", "Cancel booking", "", "t-danger") : ""}
+      </div></div>
+      <div class="sec" style="margin-top:28px"><div class="sec-head"><h2>Activity</h2></div><ul class="timeline">${[...b.history].reverse().map((x) => `<li><div class="small strong">${esc(x.action)}</div>${x.detail ? `<div class="tiny muted">${esc(x.detail)}</div>` : ""}<div class="t-time">${esc(fmt.dayLabel(Date.parse(x.at)))} · ${tl(Date.parse(x.at))}</div></li>`).join("")}</ul></div>
+    </div>`;
+  },
+  mount(el, r) {
+    let sig = "";
+    const sigOf = () => { const b = P.getBooking(r.params.id); return b ? P.bookingStatus(b) + P.isOverstay(b) + (Date.parse(b.end) - P.now() < 15 * MIN) : ""; };
+    sig = sigOf();
+    return {
+      tick() {
+        const b = P.getBooking(r.params.id); if (!b) return;
+        if (sigOf() !== sig) { sig = sigOf(); rerender(); return; }
+        const n = P.now(), s = Date.parse(b.start), e = Date.parse(b.end);
+        const L = $("[data-cd=left]", el); if (L) { L.textContent = fmt.countdown(e - n); const c = $(".ring-fill", el); if (c) { const tot = +c.getAttribute("stroke-dasharray"); c.setAttribute("stroke-dashoffset", (tot * (1 - Math.max(0, (e - n) / (e - s)))).toFixed(2)); } }
+        const U = $("[data-cd=start]", el); if (U) U.textContent = fmt.countdown(s - n);
+        const O = $("[data-cd=over]", el); if (O) { const ex = A.exitPreview(b.id); O.textContent = "+" + fmt.countdown(ex.overMs); $("[data-fee]", el).textContent = P.money(ex.fee); }
+      },
+      onState(st, why, prev) { if (why !== "tick" && (st.bookings !== prev.bookings || st.demo !== prev.demo)) { sig = sigOf(); rerender(); } },
+    };
+  },
+  acts: {
+    pass: (t, el, r) => { const b = P.getBooking(r.params.id); sheet({ title: "Your pass", body: `<div class="pass-slot">${passHTML(b, { print: true })}</div>` }); },
+    cal: (t, el, r) => calendarSheet(P.getBooking(r.params.id)),
+    again: (t, el, r) => { const b = P.getBooking(r.params.id); nav.go("/parking/" + b.facilityId); },
+    pay: (t, el, r) => { const b = P.getBooking(r.params.id);
+      sheet({ title: "Payment summary", body: `${P.bill(b.price, { totalLabel: "Booking total" })}
+        ${b.payment.adjustments.length ? `<div class="group-label mt-24">Changes</div><dl class="kv card card-pad">${b.payment.adjustments.map((a) => `<div><dt>${esc(a.reason)}</dt><dd class="mono ${a.amount < 0 ? "t-ok" : ""}">${a.amount < 0 ? "− " : "+ "}${P.money(Math.abs(a.amount))}</dd></div>`).join("")}</dl>` : ""}
+        <dl class="kv mt-16"><div><dt>Paid in total</dt><dd class="mono strong">${P.money(P.paidSoFar(b))}</dd></div><div><dt>Paid with</dt><dd>${esc((D.paymentMethods.find((m) => m.id === b.payment.method) || { label: b.payment.method }).label)}</dd></div><div><dt>Transaction</dt><dd class="mono tiny selectable">${esc(b.payment.txnId)}</dd></div></dl>` }); },
+    extend: (t, el, r) => extendSheet(r.params.id),
+    cancel: (t, el, r) => cancelSheet(r.params.id),
+    modify: (t, el, r) => modifySheet(r.params.id),
+    exit: (t, el, r) => exitSheet(r.params.id),
+  },
+};
+
+function extendSheet(id) {
+  const b = P.getBooking(id); let min = 60;
+  const s = sheet({ title: "Extend parking", body: `<p class="small muted mb-12">Now ends at <b class="mono ink-2">${tl(Date.parse(b.end))}</b>. Drag the dial to add time.</p>
+    <div class="dial" data-dial style="width:220px"></div>
+    <div class="ext-chips mt-16">${[30, 60, 120, 180].map((m) => `<button class="chip ${m === min ? "is-on" : ""}" data-m="${m}">+${m < 60 ? m + "m" : m / 60 + "h"}</button>`).join("")}</div>
+    <div class="mt-16" data-q></div>`, footer: `<button class="btn btn-primary btn-lg btn-block" data-go-ext></button>` });
+  const qEl = $("[data-q]", s.body), btn = s.footer.querySelector("[data-go-ext]");
+  const paint = () => {
+    const q = A.quoteExtension(id, min);
+    $$("[data-m]", s.body).forEach((c) => c.classList.toggle("is-on", +c.dataset.m === min));
+    qEl.innerHTML = q.ok ? `<div class="card card-pad"><dl class="kv"><div><dt>New exit time</dt><dd class="mono">${tl(q.newEnd)}</dd></div><div><dt>Spaces free then</dt><dd class="mono t-ok">${q.free}</dd></div><div><dt>Extra to pay</dt><dd class="mono lime strong" data-x>${P.money(q.extra)}</dd></div></dl></div>`
+      : `<div class="notice notice-danger">${icon("circle-x", 16)}<span>${esc(q.issues[0])}</span></div>`;
+    btn.disabled = !q.ok; btn.textContent = q.ok ? `Pay ${P.money(q.extra)} and extend` : "Can't extend by this much";
+  };
+  const dial = P.Dial.mount($("[data-dial]", s.body), { valueMin: min, minMin: 30, maxMin: 180, stepMin: 30, label: "Add", prefix: "+", sub: (v) => `New exit <b>${tl(Date.parse(b.end) + v * MIN)}</b>`, onChange: (v) => { min = v; paint(); } });
+  s.body.addEventListener("click", (e) => { const c = e.target.closest("[data-m]"); if (c) { min = +c.dataset.m; dial.set(min, true); paint(); } });
+  btn.onclick = async () => { btn.classList.add("is-loading"); await wait(700); const r = A.extendBooking(id, min); s.close(); r.ok ? P.toast(`Extended. Charged ${P.money(r.value.extra)}.`, "ok") : P.toast(r.error, "danger"); };
+  paint();
+}
+function cancelSheet(id) {
+  const b = P.getBooking(id), f = P.facility(b.facilityId), pv = A.refundPreview(id), dl = P.cancelDeadline(b, f), pol = D.policies[f.policy];
+  const s = sheet({ title: "Cancel this booking?", body: `
+    <div class="card card-pad center"><div class="eyebrow">You get back</div><div class="mt-8">${price(pv.amount)}</div><div class="tiny muted mt-8">of ${P.money(pv.paid)} paid · ${pv.percent}% refund</div></div>
+    ${dl ? `<div class="notice notice-warn mt-12">${icon("alarm-clock", 16)}<span>Refund drops to ${dl.percentAfter}% in <b class="mono" data-dl>${fmt.countdown(dl.at - P.now())}</b> (at ${tl(dl.at)}).</span></div>` : ""}
+    <p class="small ink-2 mt-12">${esc(pv.note)}</p>
+    <div class="group-label mt-16">${esc(pol.title)} policy</div><ul class="pol">${pol.rules.map((x) => `<li>${icon("check", 15)}${esc(x)}</li>`).join("")}</ul>`,
+    footer: `<button class="btn btn-secondary btn-lg" data-close>Keep it</button><button class="btn btn-danger btn-lg" data-yes>Cancel booking</button>` });
+  if (dl) { s._tick = () => { const x = $("[data-dl]", s.body); if (x) x.textContent = fmt.countdown(dl.at - P.now()); }; sheetTicks.add(s._tick); }
+  s.footer.querySelector("[data-close]").onclick = s.close;
+  s.footer.querySelector("[data-yes]").onclick = () => { const r = A.cancelBooking(id); s.close(); r.ok ? P.toast(r.value.refund ? `Cancelled. ${P.money(r.value.refund)} is on its way back.` : "Cancelled. No refund under the policy.", "ok") : P.toast(r.error, "danger"); };
+}
+function exitSheet(id) {
+  const ex = A.exitPreview(id);
+  const s = sheet({ title: "Leaving now?", body: `<p class="ink-2">Tap confirm once your car is out of the gate. We'll close the booking.</p>
+    ${ex.fee ? `<div class="notice notice-danger mt-12">${icon("triangle-alert", 16)}<span>You stayed ${fmt.countdown(ex.overMs)} past your exit time. An overstay charge of <b>${P.money(ex.fee)}</b> will be added.</span></div>` : `<div class="notice notice-ok mt-12">${icon("circle-check", 16)}<span>No extra charges. You're inside your time.</span></div>`}`,
+    footer: `<button class="btn btn-secondary btn-lg" data-close>Not yet</button><button class="btn btn-primary btn-lg" data-yes>${ex.fee ? `Pay ${P.money(ex.fee)} and exit` : "Confirm exit"}</button>` });
+  s.footer.querySelector("[data-close]").onclick = s.close;
+  s.footer.querySelector("[data-yes]").onclick = () => { A.markExited(id, ex.fee); s.close(); P.toast("Exit recorded. Drive safe!", "ok"); };
+}
+function modifySheet(id) {
+  const b = P.getBooking(id); let start = Date.parse(b.start), dur = Math.round((Date.parse(b.end) - start) / MIN), vid = b.vehicleId, dk = P.dateKey(start);
+  const s = sheet({ title: "Change booking", body: `
+    <div class="group-label">New entry</div><div data-w></div>
+    <div class="group-label mt-16">Duration</div><div class="chip-scroll" data-d>${[60, 120, 180, 240, 360, 480].map((m) => `<button class="chip ${m === dur ? "is-on" : ""}" data-m="${m}">${m / 60} h</button>`).join("")}</div>
+    <div class="group-label mt-16">Vehicle</div><div class="chip-scroll" data-v>${S.state.vehicles.map((v) => `<button class="chip ${v.id === vid ? "is-on" : ""}" data-id="${v.id}">${esc(v.name)}</button>`).join("")}</div>
+    <div class="mt-16" data-res></div>`, footer: `<button class="btn btn-primary btn-lg btn-block" data-save></button>` });
+  const btn = s.footer.querySelector("[data-save]");
+  const paint = () => {
+    const p = A.previewModify(id, { start, end: start + dur * MIN, vehicleId: vid });
+    if (!p.ok) { $("[data-res]", s.body).innerHTML = `<div class="notice notice-danger">${icon("circle-x", 16)}<span>${esc(p.error)}</span></div>`; btn.disabled = true; btn.textContent = "Fix the issue above"; return; }
+    const d = p.value.diff;
+    $("[data-res]", s.body).innerHTML = `<div class="card card-pad"><dl class="kv"><div><dt>New time</dt><dd class="mono">${esc(fmt.windowLabel(start, start + dur * MIN))}</dd></div><div><dt>New total</dt><dd class="mono">${P.money(p.value.price.total)}</dd></div>
+      <div><dt>${d > 0 ? "Pay more" : d < 0 ? "Refund" : "Difference"}</dt><dd class="diff ${d > 0 ? "lime" : d < 0 ? "t-ok" : ""}">${d ? P.money(Math.abs(d)) : "₹0"}</dd></div></dl></div>`;
+    btn.disabled = false; btn.textContent = d > 0 ? `Pay ${P.money(d)} and save` : d < 0 ? `Save and get ${P.money(-d)} back` : "Save changes";
+  };
+  wheel($("[data-w]", s.body), [{ items: dayItems(), value: dk, wide: true }, { items: timeItems(), value: P.timeKey(start), wide: true }], ([d2, t2]) => { dk = d2; start = P.at(d2, t2).getTime(); paint(); });
+  $("[data-d]", s.body).addEventListener("click", (e) => { const c = e.target.closest("[data-m]"); if (!c) return; dur = +c.dataset.m; $$("[data-m]", s.body).forEach((x) => x.classList.toggle("is-on", x === c)); paint(); });
+  $("[data-v]", s.body).addEventListener("click", (e) => { const c = e.target.closest("[data-id]"); if (!c) return; vid = c.dataset.id; $$("[data-v] .chip", s.body).forEach((x) => x.classList.toggle("is-on", x === c)); paint(); });
+  btn.onclick = () => { const r = A.modifyBooking(id, { start, end: start + dur * MIN, vehicleId: vid }); s.close(); r.ok ? P.toast("Booking updated", "ok") : P.toast(r.error, "danger"); };
+  paint();
+}
+
+/* 11 · ARRIVING */
+const arriveChecks = {};
+Screens.arrive = {
+  render(r) {
+    const b = P.getBooking(r.params.id); if (!b) return topbar({ title: "Arriving" }) + empty("search-x", "Booking not found", "");
+    const f = P.facility(b.facilityId), n = P.now(), s = Date.parse(b.start), canIn = n >= s - 15 * MIN && !b.arrivedAt && P.bookingStatus(b) !== "cancelled";
+    const av = P.availability(f, Math.max(n, s), Date.parse(b.end), S.state.bookings, S.state.demo.seed);
+    const ck = (arriveChecks[b.id] = arriveChecks[b.id] || {});
+    const items = ["Pass ready on my phone", `Driving ${b.vehicle.plate}`, `Heading to ${f.levels[0]} entrance`, "Phone brightness up for scanning"];
+    return `${topbar({ title: "Arriving", large: true, eyebrow: esc(f.name) })}
+    <div class="page">
+      <div class="hero-st"><div class="row-between"><span class="eyebrow is-lime">${n < s ? "Entry in" : "Entry window open"}</span>${P.badge("Bay held", "ok", "lock")}</div>
+        <div class="cd-big mt-8" data-cd>${n < s ? fmt.countdown(s - n) : "Now"}</div>
+        <p class="small ink-2 mt-8">Your bay <b class="mono">${esc(b.bay)}</b> is held. ${av.free} other spaces are free right now.</p></div>
+      <div class="map-strip mt-16" style="height:200px" data-amap></div>
+      <div class="row gap-8 mt-12"><a class="btn btn-secondary btn-md" style="flex:1" href="${esc(P.mapsUrl(f, "driving"))}" target="_blank" rel="noopener">${icon("navigation", 17)}Drive there</a><button class="btn btn-secondary btn-md" style="flex:1" data-act="pass">${icon("qr-code", 17)}Show pass</button></div>
+      <div class="sec" style="margin-top:28px"><div class="sec-head"><h2>Before you reach the gate</h2></div><div class="group">${items.map((x, i) => `<label class="grow-row no-press"><span class="check"><input type="checkbox" data-ck="${i}" ${ck[i] ? "checked" : ""}><span class="check-box"></span></span><span class="lbl">${esc(x)}</span></label>`).join("")}</div></div>
+      <div class="sec" style="margin-top:28px"><div class="sec-head"><h2>At the entrance</h2></div><ol class="steps">${f.entry.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></div>
+    </div>
+    <div class="actionbar"><button class="btn btn-primary btn-lg btn-block" data-act="checkin" ${canIn ? "" : "disabled"}>${b.arrivedAt ? "Checked in" : canIn ? "I've entered — check in" : `Check-in opens ${opensLabel(s - 15 * MIN)}`}</button></div>`;
+  },
+  mount(el, r) {
+    const b = P.getBooking(r.params.id); if (!b) return {};
+    const f = P.facility(b.facilityId);
+    const near = D.destinations.slice().sort((a, c) => P.distKm(a, f) - P.distKm(c, f))[0];
+    const m = P.SvgMap.render($("[data-amap]", el), { items: [P.measure(f, S.state.search, S.state.bookings, S.state.demo.seed, b.vehicle.type, near)], dest: near, selectedId: f.id, routeTo: f, radiusKm: 1, compact: true, onOpen: () => window.open(P.mapsUrl(f), "_blank") });
+    el.addEventListener("change", (e) => { const i = e.target.dataset.ck; if (i !== undefined) arriveChecks[b.id][i] = e.target.checked; });
+    let open = P.now() >= Date.parse(b.start) - 15 * MIN;
+    return { destroy: () => m.destroy(), tick() { const n = P.now(), s = Date.parse(b.start), cd = $("[data-cd]", el); if (cd && n < s) cd.textContent = fmt.countdown(s - n); if (!open && n >= s - 15 * MIN) { open = true; rerender(); } },
+      onState(st, why, prev) { if (st.bookings !== prev.bookings || st.demo !== prev.demo) rerender(); } };
+  },
+  acts: {
+    pass: (t, el, r) => Screens.booking.acts.pass(t, el, r),
+    checkin: (t, el, r) => { A.markArrived(r.params.id); P.toast("Checked in. The barrier is lifting.", "ok"); nav.reset(["/bookings"], "/bookings/" + r.params.id, "pop"); setTimeout(() => Screens.booking.acts.pass(null, null, { params: r.params }), 380); },
+  },
+};
+
+/* 12 · SAVED */
+let savedTab = "parking";
+Screens.saved = {
+  tab: true, tray: true,
+  render(r) {
+    if (r.query.tab) savedTab = r.query.tab;
+    const st = S.state;
+    const spots = st.savedIds.map(P.facility).filter(Boolean);
+    const body = savedTab === "parking"
+      ? (spots.length ? `<div class="rlist m-stagger">${spots.map((f) => rcard(measureOne(f), { cmp: true })).join("")}</div>` : empty("heart", "Nothing saved yet", "Tap the heart on any parking place to keep it here.", `<button class="btn btn-primary btn-md" data-tab="/explore">Explore parking</button>`))
+      : (st.savedSearches.length ? `<div class="stack-12">${st.savedSearches.map((s) => { const d = s.custom || P.destination(s.destId) || {};
+          return `<div class="card card-pad"><div class="row-top gap-12"><span class="pay-ico">${icon("search", 18)}</span><div class="grow"><b class="small">${esc(s.label)}</b><div class="tiny muted mt-4">${esc(d.name || "")} · ${fmt.durationLabel(s.durationH)} · ${P.activeFilters(s.filters).map((a) => a.label).join(", ") || "No filters"}</div>
+            ${s.lastPrice ? `<div class="tiny mono ink-2 mt-4">Last check: from ₹${s.lastPrice}/h · ${s.lastSpaces} spaces</div>` : ""}</div>
+            <label class="switch" aria-label="Alerts for ${esc(s.label)}"><input type="checkbox" data-alert="${s.id}" ${s.alerts ? "checked" : ""}><span class="switch-track"></span></label></div>
+            <div class="row gap-8 mt-12"><button class="btn btn-primary btn-sm" style="flex:1" data-act="run" data-id="${s.id}">${icon("search", 15)}Run search</button><button class="btn btn-secondary btn-sm btn-icon" data-act="rm-search" data-id="${s.id}" aria-label="Delete search">${icon("trash", 16)}</button></div></div>`; }).join("")}
+          <button class="btn btn-outline btn-md btn-block" data-act="check">${icon("bell", 17)}Check alerts now</button></div>`
+        : empty("bookmark-plus", "No saved searches", "Save a search on Explore and we'll alert you when prices or spaces change.", `<button class="btn btn-primary btn-md" data-tab="/explore">Go to Explore</button>`));
+    return `${topbar({ title: "Saved", large: true, back: false, actions: bell() })}
+    <div class="page"><div class="seg seg-block mb-16" data-stab><button class="${savedTab === "parking" ? "is-on" : ""}" data-t="parking">Parking <span class="count">${spots.length}</span></button><button class="${savedTab === "searches" ? "is-on" : ""}" data-t="searches">Searches <span class="count">${st.savedSearches.length}</span></button></div>
+      <div data-sbody>${body}</div></div>`;
+  },
+  mount(el) {
+    $("[data-stab]", el).addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (!b || b.classList.contains("is-on")) return; segSet(b.parentElement, b); savedTab = b.dataset.t; setTimeout(() => rerender(false), 180); });
+    el.addEventListener("change", (e) => { const id = e.target.dataset.alert; if (id) { A.toggleSearchAlert(id); P.toast(e.target.checked ? "Alerts on for this search" : "Alerts off", "info"); } });
+    return { onState(st, why, prev) {
+      if (st.savedIds !== prev.savedIds) { if (savedTab === "parking") rerender(); return; }
+      if (st.compareIds !== prev.compareIds) { syncCards(el); return; }
+      if (st.savedSearches !== prev.savedSearches && savedTab === "searches" && why !== "alerts") { if (st.savedSearches.length !== prev.savedSearches.length) rerender(); return; }
+      if (why === "alerts" || why === "seed") rerender();
+    } };
+  },
+  acts: {
+    ...cardActs,
+    run: (t) => { A.runSavedSearch(t.dataset.id); nav.go("/explore"); },
+    "rm-search": async (t) => { if (await P.confirmDialog({ title: "Delete this search?", body: "You'll stop getting alerts for it.", confirm: "Delete", tone: "danger", cancel: "Keep" })) { A.removeSearch(t.dataset.id); P.toast("Search deleted", "info"); } },
+    check: async (t) => { t.classList.add("is-loading"); await wait(800); const n = A.checkAlerts(); t.classList.remove("is-loading"); P.toast(n ? `${n} new alert${n > 1 ? "s" : ""}. See Alerts.` : "No changes since the last check", n ? "ok" : "info", n ? { label: "Open", onClick: () => nav.go("/notifications") } : undefined); },
+  },
+};
+
+/* 13 · COMPARE */
+Screens.compare = {
+  render() {
+    const ids = S.state.compareIds, rows = ids.map((id) => measureOne(P.facility(id)));
+    if (rows.length < 2) return `${topbar({ title: "Compare", large: true })}<div class="page">${empty("columns", rows.length ? "Add one more" : "Nothing to compare", "Tick “Compare” on 2 or 3 parking cards to see them side by side.", `<button class="btn btn-primary btn-md" data-tab="/explore">Pick from Explore</button>`)}</div>`;
+    const best = (fn, low = true) => { const v = rows.map(fn); const t = low ? Math.min(...v) : Math.max(...v); return v.map((x) => x === t); };
+    const pol = (f) => D.policies[f.policy].title;
+    const R = [
+      ["Total for your time", (r) => P.money(r.total), best((r) => r.total)],
+      ["Per hour", (r) => `₹${r.rate}`, best((r) => r.rate)],
+      ["Per day", (r) => (r.f.dailyRate ? P.money(P.dailyFor(r.f, vt())) : "—"), best((r) => (r.f.dailyRate ? P.dailyFor(r.f, vt()) : 1e9))],
+      ["Distance", (r) => `${fmt.kmLabel(r.km)} · ${r.walk} min`, best((r) => r.km)],
+      ["Free spaces", (r) => (r.free > 0 ? `${r.free} of ${r.f.capacity}` : "Full"), best((r) => r.free, false)],
+      ["Rating", (r) => `★ ${r.f.rating}`, best((r) => r.f.rating, false)],
+      ["Type", (r) => D.typeLabels[r.f.type]], ["Hours", (r) => P.hoursLabel(r.f)],
+      ["Security", (r) => r.f.security.map((s) => D.securityLabels[s]).join(", ")],
+      ["EV charging", (r) => (r.f.ev ? `${r.f.ev.count} × ${r.f.ev.kw} kW` : "No")], ["Height limit", (r) => (r.f.heightLimit ? r.f.heightLimit + " m" : "None")],
+      ["Cancellation", (r) => pol(r.f)],
+    ];
+    return `${topbar({ title: "Compare", large: true, lead: `${rows.length} places · ${esc(fmt.windowLabel(W().s, W().e))}` })}
+    <div class="cmp-scroll"><table class="cmp" style="--n:${rows.length}">
+      <thead><tr><th class="cmp-k"></th>${rows.map((r) => `<th><div class="illus-frame">${P.Illus.facility(r.f)}</div><b class="small cmp-name">${esc(r.f.name)}</b><div class="tiny muted">${esc(r.f.area)}</div></th>`).join("")}</tr></thead>
+      <tbody>${R.map(([k, fn, b]) => `<tr><th class="cmp-k">${k}</th>${rows.map((r, i) => `<td class="${b && b[i] ? "is-best" : ""}">${b && b[i] ? icon("circle-check", 14) : ""}${esc(fn(r))}</td>`).join("")}</tr>`).join("")}
+      <tr><th class="cmp-k"></th>${rows.map((r) => `<td><button class="btn btn-primary btn-sm btn-block" data-go="/reserve/${r.f.id}" ${r.free <= 0 ? "disabled" : ""}>Reserve</button><button class="btn btn-ghost btn-sm btn-block mt-4" data-act="cmp" data-id="${r.f.id}">Remove</button></td>`).join("")}</tr></tbody></table></div>
+    <p class="tiny muted center mt-12" style="padding:0 16px 24px">${icon("circle-check", 12)} marks the best value in each row. Swipe sideways to see more.</p>`;
+  },
+  mount() { return { onState(st, why, prev) { if (st.compareIds !== prev.compareIds) rerender(); } }; },
+  acts: { ...cardActs },
+};
+
+/* 14 · NOTIFICATIONS */
+const NK = { confirmed: ["check", "lime"], reminder: ["alarm-clock", "warn"], ending: ["timer", "warn"], availability: ["refresh-cw", "info"], price: ["sparkles", "info"], cancelled: ["x", "danger"], modified: ["pencil", "neutral"], extended: ["plus", "ok"] };
+Screens.notifications = {
+  render() {
+    const ns = S.state.notifications;
+    return `${topbar({ title: "Alerts", large: true, actions: ns.length ? `<button class="btn btn-ghost btn-sm" data-act="more">${icon("more", 20)}</button>` : "" })}
+    <div class="page">${ns.length ? `<div class="group">${ns.map((n) => { const [ic, tone] = NK[n.kind] || ["bell", "neutral"];
+      return `<div class="nrow ${n.read ? "" : "is-unread"}" data-nid="${n.id}"><button class="grow-row" data-act="open-n" data-id="${n.id}"><span class="ri nk-${tone}">${icon(ic, 16)}</span><span class="lbl"><b class="small">${esc(n.title)}</b><small>${esc(n.body)}</small><small class="mono">${esc(fmt.ago(n.at))}</small></span>${n.read ? "" : '<i class="udot" aria-label="Unread"></i>'}</button>
+        <button class="nrow-del" data-act="del-n" data-id="${n.id}" aria-label="Delete">${icon("trash", 16)}</button></div>`; }).join("")}</div>
+      <p class="tiny muted center mt-12">Swipe a row left to delete it.</p>`
+      : empty("bell-off", "You're all caught up", "Booking updates, reminders and price alerts show up here.")}</div>`;
+  },
+  mount(el) {
+    // swipe left on a row to reveal delete
+    $$(".nrow", el).forEach((row) => {
+      const b = row.querySelector(".grow-row"); let x0 = null, dx = 0;
+      b.addEventListener("pointerdown", (e) => { x0 = e.clientX; dx = 0; });
+      b.addEventListener("pointermove", (e) => { if (x0 === null) return; dx = Math.min(0, e.clientX - x0); if (dx < -8) { b.style.transform = `translateX(${Math.max(-80, dx)}px)`; } });
+      const up = () => { if (x0 === null) return; x0 = null; const open = dx < -40; b.style.transition = "transform 200ms"; b.style.transform = open ? "translateX(-76px)" : ""; setTimeout(() => (b.style.transition = ""), 220); if (Math.abs(dx) > 8) swallowUntil = Date.now() + 200; };
+      b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up); b.addEventListener("pointerleave", up);
+    });
+    return { onState(st, why, prev) { if (st.notifications !== prev.notifications) rerender(); } };
+  },
+  acts: {
+    "open-n": (t) => { const n = S.state.notifications.find((x) => x.id === t.dataset.id); if (!n) return; A.markRead(n.id);
+      if (n.bookingId && P.getBooking(n.bookingId)) nav.go("/bookings/" + n.bookingId); else if (n.facilityId) nav.go("/parking/" + n.facilityId); },
+    "del-n": (t) => { A.removeNotification(t.dataset.id); P.toast("Alert deleted", "info"); },
+    more: () => { const s = sheet({ title: "Alerts", body: `<div class="act-list"><button class="list-row" data-x="read"><span class="ico-wrap">${icon("check-check", 18)}</span><span class="grow">Mark all as read</span></button><button class="list-row t-danger" data-x="clear"><span class="ico-wrap">${icon("trash", 18)}</span><span class="grow">Clear all</span></button></div>` });
+      s.body.addEventListener("click", (e) => { const b = e.target.closest("[data-x]"); if (!b) return; s.close(); if (b.dataset.x === "read") A.markAllRead(); else A.clearNotifications(); }); },
+  },
+};
+
+/* 15 · PROFILE */
+let devTaps = 0, devOpen = false;
+const FAQ = [["How is my space held?", "When you pay, one space is set aside for your exact hours. Other drivers can't book it."],
+  ["What if I'm late?", "Your space stays held until your exit time. Arrive any time inside your window."],
+  ["What if I stay longer?", "You get 15 minutes of grace. After that, each started hour costs 1.5× the hourly rate. Extend in the app to avoid it."],
+  ["How do refunds work?", "Each place has a policy: Flexible, Moderate or Strict. The app shows your exact refund before you cancel."]];
+Screens.profile = {
+  tab: true,
+  render() {
+    const st = S.state, u = st.user, nt = st.prefs.notify, off = st.demo.clockOffsetMin;
+    const sw = (k, label, sub, on, kind = "n") => `<label class="grow-row no-press"><span class="lbl">${label}${sub ? `<small>${sub}</small>` : ""}</span><span class="switch"><input type="checkbox" data-${kind}="${k}" ${on ? "checked" : ""}><span class="switch-track"></span></span></label>`;
+    return `${topbar({ title: "Profile", large: true, back: false, actions: bell() })}
+    <div class="page">
+      <div class="card card-pad row gap-12"><div class="avatar">${esc(u.guest ? "G" : u.name.split(" ").map((x) => x[0]).join(""))}</div><div class="grow"><b class="h3">${esc(u.guest ? "Guest" : u.name)}</b><div class="tiny muted">${esc(u.guest ? "Sign in to sync bookings" : u.email)}</div><div class="tiny muted mono">${esc(u.guest ? "" : u.phone)}</div></div>${u.guest ? `<button class="btn btn-primary btn-sm" data-act="signin">Sign in</button>` : ""}</div>
+      <div class="sec" style="margin-top:28px"><div class="group-label">Vehicles</div><div class="group">${st.vehicles.map((v) => `<button class="grow-row" data-act="veh" data-id="${v.id}"><span class="ri ${v.id === st.defaultVehicleId ? "lime" : ""}">${icon(v.type === "motorcycle" ? "bike" : v.type === "ev" ? "zap" : "car", 16)}</span><span class="lbl">${esc(v.name)}<small>${esc(D.vehicleLabels[v.type])}${v.id === st.defaultVehicleId ? " · Default" : ""}</small></span>${P.plate(v.plate, "sm")}</button>`).join("")}
+        <button class="grow-row" data-act="add-veh"><span class="ri">${icon("plus", 16)}</span><span class="lbl lime">Add a vehicle</span></button></div></div>
+      <div class="sec" style="margin-top:28px"><div class="group-label">Payment &amp; places</div><div class="group">
+        <button class="grow-row" data-act="paypref"><span class="ri">${icon("wallet", 16)}</span><span class="lbl">Pay with</span><span class="val">${esc(D.paymentMethods.find((m) => m.id === st.prefs.payment).label)}</span>${icon("chevron-right", 18, "chev")}</button>
+        ${st.savedPlaces.map((p) => `<button class="grow-row" data-act="place" data-id="${p.id}"><span class="ri">${icon(p.label === "Home" ? "house" : "briefcase", 16)}</span><span class="lbl">${esc(p.label)}</span><span class="val">${esc(P.destination(p.destId).name)}</span>${icon("chevron-right", 18, "chev")}</button>`).join("")}</div></div>
+      <div class="sec" style="margin-top:28px"><div class="group-label">Notifications</div><div class="group">${sw("reminders", "Booking reminders", "1 hour before entry and 15 min before exit", nt.reminders)}${sw("updates", "Booking updates", "Confirmations, changes, refunds", nt.updates)}${sw("priceAlerts", "Price alerts", "For your saved searches", nt.priceAlerts)}${sw("availability", "Availability changes", "For your saved places", nt.availability)}</div></div>
+      <div class="sec" style="margin-top:28px"><div class="group-label">Display</div><div class="group">${sw("largeText", "Larger text", "", st.prefs.largeText, "p")}${sw("reduceMotion", "Reduce motion", "Turns off slides and count-ups", st.prefs.reduceMotion, "p")}</div></div>
+      ${devOpen ? `<div class="sec dev" style="margin-top:28px"><div class="group-label lime">Developer options</div><div class="card card-pad">
+        <div class="row-between"><span class="small">Test clock</span><b class="mono small ${off ? "lime" : ""}" data-clock>${esc(fmt.dayLabel(P.now()))} ${tl(P.now())}${off ? ` (+${fmt.durationShort(off)})` : ""}</b></div>
+        <div class="dev-grid mt-12"><button class="btn btn-secondary btn-sm" data-act="clock" data-m="30">+30 min</button><button class="btn btn-secondary btn-sm" data-act="clock" data-m="60">+1 h</button><button class="btn btn-secondary btn-sm" data-act="clock" data-m="180">+3 h</button></div>
+        <div class="stack-8 mt-8"><button class="btn btn-secondary btn-sm btn-block" data-act="jump">Jump to 10 min before next event</button><button class="btn btn-outline btn-sm btn-block" data-act="realtime" ${off ? "" : "disabled"}>Back to real time</button></div></div>
+        <div class="group mt-12">${sw("nextPaymentFails", "Fail the next payment", "Test the payment error screen", st.demo.nextPaymentFails, "d")}
+        <button class="grow-row" data-act="refresh"><span class="ri">${icon("refresh-cw", 16)}</span><span class="lbl">Refresh availability</span></button>
+        <button class="grow-row" data-act="reset"><span class="ri">${icon("rotate-ccw", 16)}</span><span class="lbl t-danger">Reset all data</span></button></div></div>` : ""}
+      <div class="sec" style="margin-top:28px"><div class="group-label">Help</div><div class="group">${FAQ.map(([q, a], i) => `<details class="faq"><summary class="grow-row"><span class="lbl">${q}</span>${icon("chevron-down", 18, "chev")}</summary><p class="small ink-2">${a}</p></details>`).join("")}
+        <button class="grow-row" data-act="doc" data-d="terms"><span class="lbl">Terms of use</span>${icon("chevron-right", 18, "chev")}</button><button class="grow-row" data-act="doc" data-d="privacy"><span class="lbl">Privacy</span>${icon("chevron-right", 18, "chev")}</button></div></div>
+      <button class="btn btn-danger btn-lg btn-block mt-24" data-act="signout">${icon("log-out", 18)}Sign out</button>
+      <button class="ver tap" data-act="ver">PARKLY for Delhi NCR · version 1.0 (prototype)${devOpen ? "" : devTaps ? ` · ${5 - devTaps} more taps` : ""}</button>
+    </div>`;
+  },
+  mount(el) {
+    el.addEventListener("change", (e) => { const t = e.target, d = t.dataset;
+      if (d.n) A.setNotify({ [d.n]: t.checked }); if (d.p) A.setPrefs({ [d.p]: t.checked }); if (d.d) { A.setDemo({ [d.d]: t.checked }); P.toast(t.checked ? "The next payment will fail" : "Payments work normally", "info"); } });
+    return { tick() { const c = $("[data-clock]", el); const off = S.state.demo.clockOffsetMin; if (c) c.textContent = `${fmt.dayLabel(P.now())} ${tl(P.now())}${off ? ` (+${fmt.durationShort(off)})` : ""}`; },
+      onState(st, why, prev) { if (st.vehicles !== prev.vehicles || st.defaultVehicleId !== prev.defaultVehicleId || st.prefs.payment !== prev.prefs.payment || st.savedPlaces !== prev.savedPlaces || st.user !== prev.user || st.demo.clockOffsetMin !== prev.demo.clockOffsetMin) rerender(); } };
+  },
+  acts: {
+    ver: () => { if (devOpen) return; devTaps++; if (devTaps >= 5) { devOpen = true; P.toast("Developer options are on", "ok"); } rerender(); },
+    clock: (t) => { A.advanceClock(+t.dataset.m); P.toast(`Clock moved forward ${fmt.durationLabel(+t.dataset.m / 60)}`, "info"); },
+    jump: () => { const l = A.jumpToNextEvent(); P.toast(l || "No upcoming or active booking", l ? "info" : "warn"); },
+    realtime: () => { A.setClockOffset(0); P.toast("Back to real time", "info"); },
+    refresh: () => { A.refreshAvailability(); P.toast("Availability refreshed", "ok"); },
+    reset: async () => { if (await P.confirmDialog({ title: "Reset all data?", body: "Bookings, saved places and settings go back to the demo start.", confirm: "Reset", tone: "danger" })) { devOpen = false; devTaps = 0; A.resetDemo(); P.toast("Demo data reset", "ok"); } },
+    signout: async () => { if (await P.confirmDialog({ title: "Sign out?", body: "You'll see the welcome screen again. Your demo data stays on this device.", confirm: "Sign out", tone: "danger" })) { A.signOut(); nav.reset([], "/welcome", "pop"); } },
+    signin: () => { A.setUser({ guest: false }); P.toast("Signed in as Riya Sharma", "ok"); },
+    "add-veh": () => vehicleSheet(),
+    veh: (t) => { const v = S.state.vehicles.find((x) => x.id === t.dataset.id);
+      const s = sheet({ title: v.name, body: `<div class="center mb-16">${P.plate(v.plate, "lg")}</div><div class="act-list">
+        ${v.id !== S.state.defaultVehicleId ? `<button class="list-row" data-x="def"><span class="ico-wrap">${icon("star", 18)}</span><span class="grow">Make default</span></button>` : ""}
+        <button class="list-row" data-x="edit"><span class="ico-wrap">${icon("pencil", 18)}</span><span class="grow">Edit</span></button><button class="list-row t-danger" data-x="rm"><span class="ico-wrap">${icon("trash", 18)}</span><span class="grow">Remove</span></button></div>` });
+      s.body.addEventListener("click", (e) => { const b = e.target.closest("[data-x]"); if (!b) return; s.close();
+        if (b.dataset.x === "def") { A.setDefaultVehicle(v.id); P.toast(`${v.name} is now your default`, "ok"); }
+        if (b.dataset.x === "edit") setTimeout(() => vehicleSheet(v), 240);
+        if (b.dataset.x === "rm") { const r = A.removeVehicle(v.id); P.toast(r.ok ? "Vehicle removed" : r.error, r.ok ? "info" : "warn"); } }); },
+    paypref: () => { const s = sheet({ title: "Pay with", body: `<div class="act-list">${D.paymentMethods.map((m) => `<button class="list-row" data-m="${m.id}"><span class="grow">${esc(m.label)}<div class="tiny muted mono">${esc(m.detail)}</div></span>${m.id === S.state.prefs.payment ? icon("check", 20, "check-mark") : ""}</button>`).join("")}</div>` });
+      s.body.addEventListener("click", (e) => { const b = e.target.closest("[data-m]"); if (b) { A.setPrefs({ payment: b.dataset.m }); s.close(); } }); },
+    place: (t) => { const p = S.state.savedPlaces.find((x) => x.id === t.dataset.id);
+      const s = sheet({ title: `Set ${p.label}`, body: `<div class="act-list">${D.destinations.map((d) => `<button class="list-row" data-d="${d.id}"><span class="grow">${esc(d.name)}<div class="tiny muted">${esc(d.area)}</div></span>${d.id === p.destId ? icon("check", 20, "check-mark") : ""}</button>`).join("")}</div>` });
+      s.body.addEventListener("click", (e) => { const b = e.target.closest("[data-d]"); if (b) { A.setSavedPlace(p.id, b.dataset.d); s.close(); } }); },
+    doc: (t) => sheet({ title: t.dataset.d === "terms" ? "Terms of use" : "Privacy", body: t.dataset.d === "terms"
+      ? `<div class="stack-12 small ink-2"><p>PARKLY lets you reserve a parking space for set hours. You pay the price shown before you confirm.</p><p>Please arrive inside your booked window and leave by your exit time. Staying longer adds an overstay charge after 15 minutes.</p><p>Refunds follow the policy shown on each place. The ₹15 convenience fee is not refunded.</p><p class="muted">This is a design prototype. No real bookings or payments are made.</p></div>`
+      : `<div class="stack-12 small ink-2"><p>We store your name, phone, email, vehicles and bookings to run your reservations.</p><p>Your location is used only when you tap “Near me”, and is not kept.</p><p>We never sell your data. You can delete your account at any time from Profile.</p><p class="muted">In this prototype, everything stays in your browser.</p></div>` }),
+  },
+};
+
+/* ═════════════ BOOT ═════════════ */
+S.subscribe((st, why, prev) => {
+  if (!current) return;
+  paintStatus();
+  if (st.bookings !== prev.bookings || st.notifications !== prev.notifications) {
+    paintTabbar(current.def.tab ? current.route.name : TAB_OF[current.route.name]);
+    const b = $(".topbar [data-go='/notifications']", current.el); if (b) b.outerHTML = bell();
+  }
+  if (st.compareIds !== prev.compareIds && current.def.tray && current.route.name !== "map") paintTray(true);
+  if (why === "reset") { nav.reset([], "/explore", "tab"); return; }
+  if (current.ctl.onState) { try { current.ctl.onState(st, why, prev); } catch (e) { console.error(e); } }
+  else if (current.def.live && why !== "tick") rerender();
+});
+// 1-second clock for countdowns on the visible screen
+setInterval(() => { if (current && current.ctl.tick) try { current.ctl.tick(); } catch (e) { console.error(e); } sheetTicks.forEach((f) => { try { f(); } catch (e) { console.error(e); } }); }, 1000);
+["n1", "n2", "n3", "n4"].forEach((id, i) => { const el = document.getElementById(id); if (el) el.innerHTML = icon(["chevron-left", "chevron-down", "refresh-cw", "timer"][i], 16); });
+$("#note-logo").innerHTML = P.logo(30);
+paintStatus();
+P.Router.on(onRoute);
+P.Router.start();
+})();
+</script>
+</body>
+</html>
