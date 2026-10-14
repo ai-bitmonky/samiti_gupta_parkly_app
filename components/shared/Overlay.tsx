@@ -96,6 +96,7 @@ function OverlayPanel({ onClose, title, footer, children, kind = "auto", size, d
   const [dy, setDy] = useState(0);
   const [settling, setSettling] = useState(false);
   const [isDrag, setIsDrag] = useState(false);
+  const [flung, setFlung] = useState(false);
   const onDragStart = useCallback((e: React.PointerEvent) => {
     if (k !== "sheet" || (e.target as HTMLElement).closest("button")) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -105,9 +106,9 @@ function OverlayPanel({ onClose, title, footer, children, kind = "auto", size, d
   }, [k]);
   const onDragMove = (e: React.PointerEvent) => {
     if (!drag.current) return;
-    const d = Math.max(0, e.clientY - drag.current.y);
+    const d = Math.max(-12, e.clientY - drag.current.y); // a little rubber band upwards (prototype dragSheet)
     drag.current.dy = d;
-    setDy(d);
+    setDy(d < 0 ? d / 4 : d);
   };
   const onDragEnd = () => {
     const d = drag.current;
@@ -115,12 +116,13 @@ function OverlayPanel({ onClose, title, footer, children, kind = "auto", size, d
     setIsDrag(false);
     if (!d) return;
     const h = panel.current?.offsetHeight || 400, v = d.dy / Math.max(1, performance.now() - d.t);
-    if (dismissable && (d.dy > Math.min(140, h * 0.3) || (v > 0.6 && d.dy > 30))) { setSettling(true); setDy(h + 40); window.setTimeout(() => closeRef.current(), 200); }
+    // flung / dragged far enough: close now; .is-flung slides it the rest of the way (220ms) as the overlay closes
+    if (dismissable && (d.dy > Math.min(140, h * 0.3) || (v > 0.6 && d.dy > 24))) { setFlung(true); closeRef.current(); }
     else { setSettling(true); setDy(0); }
   };
   const dragProps = k === "sheet" ? { onPointerDown: onDragStart, onPointerMove: onDragMove, onPointerUp: onDragEnd, onPointerCancel: onDragEnd } : {};
 
-  const panelCls = [k, size ? `${k}-${size}` : "", isDrag ? "is-dragging" : "", settling ? "is-settling" : "", className].filter(Boolean).join(" ");
+  const panelCls = [k, size ? `${k}-${size}` : "", isDrag ? "is-dragging" : "", settling ? "is-settling" : "", flung ? "is-flung" : "", className].filter(Boolean).join(" ");
   return (
     <div className={`overlay overlay-${k}${closing ? " is-closing" : ""}`} role="presentation">
       <div className="overlay-backdrop" onClick={dismissable ? onClose : undefined} style={dy && k === "sheet" ? { opacity: Math.max(0.2, 1 - dy / 500) } : undefined} />
@@ -135,9 +137,9 @@ function OverlayPanel({ onClose, title, footer, children, kind = "auto", size, d
         style={dy ? { transform: `translateY(${dy}px)` } : undefined}
         onTransitionEnd={() => setSettling(false)}
       >
-        {k === "sheet" && <div className="sheet-grip-hit" {...dragProps}><div className="sheet-grip" aria-hidden="true" /></div>}
+        {k === "sheet" && <div className="sheet-grip-hit sheet-drag" {...dragProps}><div className="sheet-grip" aria-hidden="true" /></div>}
         {title !== undefined && (
-          <div className={`${k}-head`} {...dragProps}>
+          <div className={`${k}-head${k === "sheet" ? " sheet-drag" : ""}`} {...dragProps}>
             <h2 className={`${k}-title`}>{title}</h2>
             <button type="button" className="btn btn-ghost btn-icon btn-sm" data-close aria-label="Close"><Icon name="x" size={18} /></button>
           </div>
