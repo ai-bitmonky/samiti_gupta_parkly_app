@@ -171,9 +171,10 @@ export function ModifySheet({ open, onClose, id }: P) {
   const cols = useMemo<WheelCol[]>(() => [{ items: days, value: w0.dk, wide: true }, { items: times, value: w0.tk, wide: true }], [days, times, w0]);
   if (!getBooking(state, id)) return null;
   const end = start + dur * MIN;
-  const p = actions.previewModify(id, { start, end, vehicleId: vid });
+  // hours chips → an hourly booking, exactly like the desktop modify modal (same price for the same change)
+  const p = actions.previewModify(id, { start, end, vehicleId: vid, mode: "hourly" });
   const d = p.ok ? p.value.diff : 0;
-  const save = () => { const r = actions.modifyBooking(id, { start, end, vehicleId: vid }); onClose(); if (r.ok) toast("Booking updated", "ok"); else toast(r.error, "danger"); };
+  const save = () => { const r = actions.modifyBooking(id, { start, end, vehicleId: vid, mode: "hourly" }); onClose(); if (r.ok) toast("Booking updated", "ok"); else toast(r.error, "danger"); };
   return (
     <Sheet open={open} onClose={onClose} title="Change booking" kind="sheet"
       footer={<button type="button" className="btn btn-primary btn-lg btn-block" disabled={!p.ok} onClick={save}>
