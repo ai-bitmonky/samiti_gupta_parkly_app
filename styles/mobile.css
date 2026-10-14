@@ -374,3 +374,5 @@ body.m .map-strip .map { width: 100%; height: 100%; }
 body.m .cmp-wrap { padding-bottom: 8px; }
 /* toasts sit above the sticky action bar on screens without a tab bar */
 body.m:has(.device.no-tabbar) .toast-host { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+/* compact map strips keep their scale bar on mobile (prototype: only the desktop thumbnails hide it) */
+body.m .map-strip .map-compact .map-scale { display: block; }
