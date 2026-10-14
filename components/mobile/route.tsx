@@ -59,7 +59,7 @@ const SIMPLE: Record<string, RouteName> = {
 };
 const WITH_ID: Record<string, RouteName> = { parking: "parking", reserve: "reserve", checkout: "checkout", confirmation: "confirmation", bookings: "booking" };
 
-/** "/reserve/khan" + "s=…&e=…" → ScreenRoute, or null for a path the mobile shell does not own (e.g. /_dev, 404s). */
+/** "/reserve/khan" + "s=…&e=…" → ScreenRoute, or null for a path the mobile shell does not own (404s). */
 export function parseRoute(pathname: string, search = ""): ScreenRoute | null {
   const path = (pathname || "/").replace(/\/+$/, "") || "/";
   const qs = search.replace(/^\?/, "");

@@ -11,7 +11,7 @@
    Stack rules (onRoute): tab roots/welcome reset the stack (dir "tab", or "pop" when going back down to them);
    a key already in the stack pops to it; anything else pushes. Outgoing layer stays 330 ms with nav-push-out /
    nav-pop-out (hidden for a tab switch); incoming gets nav-push-in / nav-pop-in / nav-tab-in. Reduced motion → none.
-   Onboarding gate: !state.onboarded → /welcome. "/" → /explore. Unknown paths (/_dev, 404) → the shell steps aside. */
+   Onboarding gate: !state.onboarded → /welcome. "/" → /explore. Unknown paths (404) → the shell steps aside (app/not-found.tsx). */
 import { Suspense, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
