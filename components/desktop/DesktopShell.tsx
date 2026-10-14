@@ -130,7 +130,15 @@ function useDesktopKeys() {
 
 /** Sets document.title while the view is shown. */
 export function useTitle(title: string) {
-  useEffect(() => { document.title = title; }, [title]);
+  useEffect(() => {
+    // Next streams the metadata <title> and React re-commits its text after hydration, which would undo a
+    // one-off assignment — so keep re-applying ours whenever the DOM changes while this view is shown.
+    const apply = () => { if (document.title !== title) document.title = title; };
+    apply();
+    const mo = new MutationObserver(apply);
+    mo.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+    return () => mo.disconnect();
+  }, [title]);
 }
 
 export default function DesktopShell({ children, landing = false }: { children: ReactNode; landing?: boolean }) {

@@ -125,7 +125,7 @@ function ReserveForm({ f }: { f: Facility }) {
       <div className="sticky-col"><div className="card sumcard stack-16">
         <div className="sum-fac" style={{ marginBottom: 0 }}><div className="thumb"><FacilityIllustration facility={f} /></div><div style={{ minWidth: 0 }}><b className="ellipsis" style={{ display: "block" }}>{f.name}</b><span className="small muted">{f.area} · {hoursLabel(f)}</span></div></div>
         <OccupancyBar free={chk.free} capacity={f.capacity} />
-        {blocked && <div className="issues">{chk.issues.map((i) => <div key={i.message} className={`notice notice-${i.field === "availability" ? "danger" : "warn"}`}><Icon name="triangle-alert" size={16} /><span>{i.message}</span></div>)}</div>}
+        <div className="issues">{blocked && chk.issues.map((i) => <div key={i.message} className={`notice notice-${i.field === "availability" ? "danger" : "warn"}`}><Icon name="triangle-alert" size={16} /><span>{i.message}</span></div>)}</div>
         <Bill quote={qt} totalLabel="Total to pay" />
         <button type="button" className="btn btn-primary btn-lg btn-block is-mag" disabled={blocked} onClick={go}>{blocked ? "Fix the issue above to continue" : <>Continue · {money(qt.total)} <Icon name="arrow-right" size={18} /></>}</button>
         <p className="tiny muted center">{"You won't be charged yet. You'll review everything first."}</p>

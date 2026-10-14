@@ -106,7 +106,7 @@ function ProfileView() {
       <div className="page"><div className="two-col" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}>
         <div className="stack-24">
           <section className="card prof-user"><span className="avatar">{s.user.name[0]}</span>
-            <div className="grow"><div className="h2">{s.user.name}</div><div className="small muted">{s.user.email} · {s.user.phone}</div><div className="tiny muted mt-4">{s.user.guest ? "Guest on this device" : "Named profile on this device"}</div></div>
+            <div className="grow"><div className="h2">{s.user.name}</div><div className="small muted"><span className="nowrap">{s.user.email}</span> · <span className="nowrap">{s.user.phone}</span></div><div className="tiny muted mt-4">{s.user.guest ? "Guest on this device" : "Named profile on this device"}</div></div>
             <Badge tone="lime">{`${s.bookings.length} bookings`}</Badge>
             <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Edit profile" onClick={() => openModal(({ open, close }) => <UserModal open={open} close={close} />)}><Icon name="pencil" size={15} /></button>
           </section>
