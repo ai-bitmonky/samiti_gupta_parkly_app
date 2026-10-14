@@ -65,12 +65,12 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   await p.waitForTimeout(450);
   ok(path() === '/parking/' + fid, 'on ' + path());
   ok(await p.$eval('.device', (e) => e.classList.contains('no-tabbar')), 'tab bar hidden on pushed screen');
-  const backLbl = await p.textContent('.nav-back span');
-  ok(backLbl === 'Explore', 'back label = ' + backLbl);
+  // the facility screen uses the overlay top bar (glass back button over the hero), like the prototype
+  ok(!!(await p.$('.topbar.is-overlay .glass-btn[aria-label=Back]')), 'overlay back button on the facility hero');
   await p.screenshot({ path: S('06-parking') });
 
   // back button → pop
-  await p.click('.nav-back');
+  await p.click('.glass-btn[aria-label=Back]');
   await p.waitForTimeout(120);
   const c2 = await cls('main.screen');
   ok(c2.some((c) => c.includes('nav-pop-out')) && c2.some((c) => c.includes('nav-pop-in')), 'pop back: ' + JSON.stringify(c2));
@@ -106,8 +106,7 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   ok(path().startsWith('/parking') && canc.length === 1 && !canc[0].t, 'short swipe settles back ' + JSON.stringify(canc));
   // deep back via PARENT: reload on parking (stack of 1)
   await p.reload(); await p.waitForSelector('main.screen[data-name=parking]'); await p.waitForTimeout(300);
-  ok((await p.textContent('.nav-back span')) === 'Explore', 'deep link back label Explore');
-  await p.click('.nav-back'); await p.waitForTimeout(500);
+  await p.click('.glass-btn[aria-label=Back]'); await p.waitForTimeout(500);
   ok(path() === '/explore', 'deep link back → PARENT /explore');
 
   // time sheet open + drag close
@@ -160,6 +159,8 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   ok(await p.$eval('.floating', (e) => e.hidden), 'tray clears');
 
   // pull to refresh (touch via CDP)
+  await p.evaluate(() => document.querySelector('main.screen').scrollTo(0, 0)); // pull only starts at the top
+  await p.waitForTimeout(200);
   const cdp = await ctx.newCDPSession(p);
   const touch = async (type, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x: 200, y }] });
   await touch('touchStart', 200);

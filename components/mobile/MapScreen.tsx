@@ -5,7 +5,7 @@
    Tapping empty map closes the preview. Fixed screen with the tab bar. */
 import { useState } from "react";
 import { useApp } from "@/lib/store";
-import { D, activeFilters, dayLabel, facility, kmLabel, searchCenter, searchFacilities } from "@/lib/engine";
+import { D, activeFilters, dayLabel, durationShort, facility, kmLabel, searchCenter, searchFacilities } from "@/lib/engine";
 import Icon from "@/components/shared/Icon";
 import Stars from "@/components/shared/Stars";
 import SvgMap from "@/components/shared/SvgMap";
@@ -81,7 +81,7 @@ export default function MapScreen() {
       <div className="map-top">
         <div className="map-glass">
           <button type="button" className="map-q tap" onClick={() => openSheet(({ open, close }) => <DestSheet open={open} onClose={close} />)}>
-            <Icon name="search" size={18} /><span className="grow ellipsis"><b>{c.name}</b><small>{dayLabel(w.s)} · {tl(w.s)} – {tl(w.e)}</small></span>
+            <Icon name="search" size={18} /><span className="grow ellipsis"><b>{c.name}</b><small>{dayLabel(w.s)} · {tl(w.s)} {dayLabel(w.e) !== dayLabel(w.s) ? `· ${durationShort(Math.round((w.e - w.s) / 60000))}` : `– ${tl(w.e)}`}</small></span>
           </button>
           <button type="button" className="map-when tap" aria-label="Change time" onClick={() => openSheet(({ open, close }) => <TimeSheet open={open} onClose={close} />)}><Icon name="clock" size={18} /></button>
         </div>
